@@ -1,0 +1,51 @@
+{
+  "id": "da.examples.general",
+  "name": "General Example",
+  "version": "0.1.0",
+  "runtime": "webview",
+  "family": "browserPlugin",
+  "kind": "general",
+  "description": "Reference general plugin — demonstrates direct DOM modification, da.register for app-callable functions, and capability-gated host APIs.",
+  "author": "DaLang",
+  "permissions": {
+    "hosts": ["<all_urls>"],
+    "capabilities": ["network"]
+  },
+  "settings": [
+    {
+      "key": "invertColors",
+      "type": "bool",
+      "label": "Invert page colors",
+      "default": false
+    },
+    {
+      "key": "fontSize",
+      "type": "int",
+      "label": "Base font size (px)",
+      "default": 16,
+      "min": 10,
+      "max": 32
+    },
+    {
+      "key": "opacity",
+      "type": "double",
+      "label": "Page opacity",
+      "default": 1.0,
+      "min": 0.2,
+      "max": 1.0
+    },
+    {
+      "key": "injectText",
+      "type": "string",
+      "label": "Banner text",
+      "default": ""
+    },
+    {
+      "key": "theme",
+      "type": "choice",
+      "label": "Force theme",
+      "options": ["none", "light", "dark"],
+      "default": "none"
+    }
+  ]
+}

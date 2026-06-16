@@ -1,0 +1,7 @@
+{
+  "id": "da.extended",
+  "name": "DaLang Extended Plugins",
+  "version": "0.0.0",
+  "updateUrl": "https://raw.githubusercontent.com/CaptainDario/da-lang-plugins/main/packs/extended/index.json",
+  "plugins": []
+}

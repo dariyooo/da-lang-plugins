@@ -1,0 +1,29 @@
+{
+  "id": "da.examples.subtitle",
+  "name": "Subtitle Example",
+  "version": "0.1.0",
+  "runtime": "webview",
+  "family": "browserPlugin",
+  "kind": "subtitle",
+  "description": "Reference subtitle plugin — demonstrates da.register('get'), da.emit('subtitles'), MutationObserver push, and language tagging.",
+  "author": "DaLang",
+  "permissions": {
+    "hosts": ["<all_urls>"],
+    "capabilities": []
+  },
+  "settings": [
+    {
+      "key": "enabled",
+      "type": "bool",
+      "label": "Enable subtitles",
+      "default": true
+    },
+    {
+      "key": "language",
+      "type": "choice",
+      "label": "Language",
+      "options": ["ja", "zh", "ko", "en"],
+      "default": "ja"
+    }
+  ]
+}

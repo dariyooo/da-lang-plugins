@@ -1,0 +1,91 @@
+(function () {
+  var cfg = {
+    invertColors: false,
+    fontSize: 16,
+    opacity: 1.0,
+    injectText: '',
+    theme: 'none',
+  };
+
+  var banner = null;
+
+  // ── DOM helpers ────────────────────────────────────────────────────────────
+
+  function applyStyles() {
+    var root = document.documentElement;
+    root.style.filter = cfg.invertColors ? 'invert(1)' : '';
+    root.style.fontSize = cfg.fontSize + 'px';
+    root.style.opacity = String(cfg.opacity);
+
+    if (cfg.theme === 'dark') {
+      root.style.colorScheme = 'dark';
+    } else if (cfg.theme === 'light') {
+      root.style.colorScheme = 'light';
+    } else {
+      root.style.colorScheme = '';
+    }
+  }
+
+  function applyBanner() {
+    if (!cfg.injectText) {
+      if (banner) { banner.remove(); banner = null; }
+      return;
+    }
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.style.cssText =
+        'position:fixed;top:0;left:0;right:0;z-index:2147483647;' +
+        'background:#1a73e8;color:#fff;font-size:14px;padding:6px 12px;text-align:center;';
+      document.body && document.body.prepend(banner);
+    }
+    banner.textContent = cfg.injectText;
+  }
+
+  function apply() {
+    applyStyles();
+    applyBanner();
+  }
+
+  // ── Pull: app can request a page snapshot ─────────────────────────────────
+
+  da.register('snapshot', function () {
+    return {
+      title: document.title,
+      url: location.href,
+      wordCount: (document.body && document.body.innerText.split(/\s+/).length) || 0,
+    };
+  });
+
+  // ── Pull: capability-gated network ping ───────────────────────────────────
+
+  da.register('ping', function (url) {
+    if (!da.can('network')) {
+      da.emit('log', { level: 'warn', message: 'network capability not granted' });
+      return null;
+    }
+    return fetch(url, { method: 'HEAD' })
+      .then(function (r) { return { status: r.status, ok: r.ok }; })
+      .catch(function (e) { return { error: String(e) }; });
+  });
+
+  // ── Live settings ─────────────────────────────────────────────────────────
+
+  da.onSettingsChanged(function (s) {
+    cfg.invertColors = s.invertColors;
+    cfg.fontSize     = s.fontSize;
+    cfg.opacity      = s.opacity;
+    cfg.injectText   = s.injectText;
+    cfg.theme        = s.theme;
+    apply();
+    da.emit('log', { level: 'info', message: 'settings applied' });
+  });
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+
+  cfg.invertColors = da.settings.invertColors;
+  cfg.fontSize     = da.settings.fontSize;
+  cfg.opacity      = da.settings.opacity;
+  cfg.injectText   = da.settings.injectText;
+  cfg.theme        = da.settings.theme;
+  apply();
+})();

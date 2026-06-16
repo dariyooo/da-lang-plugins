@@ -1,0 +1,71 @@
+{
+  "id": "da.examples",
+  "name": "DaLang Examples",
+  "version": "0.1.0",
+  "updateUrl": "https://raw.githubusercontent.com/CaptainDario/da-lang-plugins/main/packs/examples/index.json",
+  "plugins": [
+    {
+      "id": "da.examples.text-selection",
+      "name": "Text Selection",
+      "version": "0.1.0",
+      "runtime": "webview",
+      "family": "browserPlugin",
+      "kind": "textSelection",
+      "description": "Reference textSelection plugin — exercises all 5 settings types, live settings updates, selection/clear events, capability check, and trigger modes.",
+      "author": "DaLang",
+      "permissions": {
+        "hosts": ["<all_urls>"],
+        "capabilities": ["clipboard"]
+      },
+      "settings": [
+        { "key": "enabled",     "type": "bool",   "label": "Enable selection",        "default": true },
+        { "key": "minLength",   "type": "int",    "label": "Minimum word length",     "default": 1, "min": 1, "max": 20 },
+        { "key": "sensitivity", "type": "double", "label": "Selection sensitivity",   "default": 0.5, "min": 0.1, "max": 1.0 },
+        { "key": "prefix",      "type": "string", "label": "Text prefix",             "default": "" },
+        { "key": "trigger",     "type": "choice", "label": "Trigger on",              "options": ["mouseup", "selectionchange", "both"], "default": "mouseup" }
+      ],
+      "codeUrl": "plugins/text-selection/script.dap"
+    },
+    {
+      "id": "da.examples.subtitle",
+      "name": "Subtitle Example",
+      "version": "0.1.0",
+      "runtime": "webview",
+      "family": "browserPlugin",
+      "kind": "subtitle",
+      "description": "Reference subtitle plugin — demonstrates da.register('get'), da.emit('subtitles'), MutationObserver push, and language tagging.",
+      "author": "DaLang",
+      "permissions": {
+        "hosts": ["<all_urls>"],
+        "capabilities": []
+      },
+      "settings": [
+        { "key": "enabled",  "type": "bool",   "label": "Enable subtitles", "default": true },
+        { "key": "language", "type": "choice", "label": "Language",         "options": ["ja", "zh", "ko", "en"], "default": "ja" }
+      ],
+      "codeUrl": "plugins/subtitle/script.dap"
+    },
+    {
+      "id": "da.examples.general",
+      "name": "General Example",
+      "version": "0.1.0",
+      "runtime": "webview",
+      "family": "browserPlugin",
+      "kind": "general",
+      "description": "Reference general plugin — demonstrates DOM modification, da.register for app-callable functions, da.emit('log'), and capability-gated network access.",
+      "author": "DaLang",
+      "permissions": {
+        "hosts": ["<all_urls>"],
+        "capabilities": ["network"]
+      },
+      "settings": [
+        { "key": "invertColors", "type": "bool",   "label": "Invert page colors",  "default": false },
+        { "key": "fontSize",     "type": "int",    "label": "Base font size (px)", "default": 16, "min": 10, "max": 32 },
+        { "key": "opacity",      "type": "double", "label": "Page opacity",        "default": 1.0, "min": 0.2, "max": 1.0 },
+        { "key": "injectText",   "type": "string", "label": "Banner text",         "default": "" },
+        { "key": "theme",        "type": "choice", "label": "Force theme",         "options": ["none", "light", "dark"], "default": "none" }
+      ],
+      "codeUrl": "plugins/general/script.dap"
+    }
+  ]
+}

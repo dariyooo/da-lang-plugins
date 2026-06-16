@@ -1,0 +1,68 @@
+(function () {
+  var cfg = { enabled: true, language: 'ja' };
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+
+  function readSubtitles() {
+    if (!cfg.enabled) return [];
+
+    // First try site-specific [data-subtitle] elements (real subtitle plugins
+    // would target e.g. .ytp-caption-segment on YouTube).
+    var specific = document.querySelectorAll('[data-subtitle]');
+    if (specific.length > 0) {
+      return Array.prototype.map.call(specific, function (el) {
+        return {
+          text: el.textContent.trim(),
+          language: el.dataset.lang || cfg.language,
+          start: parseFloat(el.dataset.start || '0'),
+          end: parseFloat(el.dataset.end || '0'),
+        };
+      });
+    }
+
+    // Fallback for testing on any page: treat visible <p> text as subtitle lines.
+    return Array.prototype.slice
+      .call(document.querySelectorAll('p'))
+      .filter(function (el) { return el.textContent.trim().length > 0; })
+      .slice(0, 5)
+      .map(function (el) {
+        return {
+          text: el.textContent.trim().slice(0, 120),
+          language: cfg.language,
+          start: 0,
+          end: 0,
+        };
+      });
+  }
+
+  // ── Pull: app calls da.register('get') to request current subtitles ───────
+
+  da.register('get', readSubtitles);
+
+  // ── Push: emit whenever the DOM changes ───────────────────────────────────
+
+  var observer = new MutationObserver(function () {
+    da.emit('subtitles', readSubtitles());
+  });
+
+  observer.observe(document.documentElement, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+  });
+
+  // ── Live settings ─────────────────────────────────────────────────────────
+
+  da.onSettingsChanged(function (s) {
+    cfg.enabled  = s.enabled;
+    cfg.language = s.language;
+    // Re-emit immediately so the language / enabled change is visible.
+    da.emit('subtitles', readSubtitles());
+  });
+
+  // ── Boot ──────────────────────────────────────────────────────────────────
+
+  cfg.enabled  = da.settings.enabled;
+  cfg.language = da.settings.language;
+  da.emit('subtitles', readSubtitles());
+})();
