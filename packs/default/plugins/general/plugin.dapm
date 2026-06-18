@@ -7,9 +7,7 @@
   "kind": "general",
   "description": "Annotates visible Japanese text with furigana ruby tags using da.host.mecab.",
   "author": "DaLang",
-  "permissions": {
-    "hosts": ["<all_urls>"]
-  },
+  "hosts": ["<all_urls>"],
   "settings": [
     {
       "key": "enabled",

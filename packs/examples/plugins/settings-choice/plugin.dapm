@@ -7,9 +7,7 @@
   "kind": "general",
   "description": "Example plugin with a single choice setting. Applies a light or dark color scheme override to the page so the effect of onSettingsChanged is immediately observable.",
   "author": "DaLang",
-  "permissions": {
-    "hosts": ["<all_urls>"]
-  },
+  "hosts": ["<all_urls>"],
   "settings": [
     { "key": "theme", "type": "choice", "label": "Force theme", "options": ["none", "light", "dark"], "default": "none" }
   ]

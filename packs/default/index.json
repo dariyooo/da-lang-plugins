@@ -13,9 +13,7 @@
       "kind": "textSelection",
       "description": "Yomitan-based text selection — dom-text-scanner / text-source-* / string-util bundled by CI.",
       "author": "DaLang",
-      "permissions": {
-        "hosts": ["<all_urls>"]
-      },
+      "hosts": ["<all_urls>"],
       "settings": [
         { "key": "enabled",          "type": "bool",   "label": "Enable text selection",     "default": true },
         { "key": "scanLength",       "type": "int",    "label": "Scan length",               "default": 16,  "min": 1,   "max": 200  },
@@ -42,9 +40,7 @@
       "kind": "subtitle",
       "description": "Reads .ytp-caption-segment nodes on YouTube and emits subtitles via da.emit('subtitles'). Pushes on MutationObserver so live captions stream in real time.",
       "author": "DaLang",
-      "permissions": {
-        "hosts": ["*youtube.com*", "*youtu.be*"]
-      },
+      "hosts": ["*youtube.com*", "*youtu.be*"],
       "settings": [
         { "key": "enabled",  "type": "bool",   "label": "Enable subtitles", "default": true },
         { "key": "language", "type": "choice", "label": "Language",         "options": ["ja", "zh", "ko", "en"], "default": "ja" }
@@ -60,9 +56,7 @@
       "kind": "general",
       "description": "Annotates visible Japanese text with furigana ruby tags using da.host.mecab.",
       "author": "DaLang",
-      "permissions": {
-        "hosts": ["<all_urls>"]
-      },
+      "hosts": ["<all_urls>"],
       "settings": [
         { "key": "enabled", "type": "bool", "label": "Show furigana", "default": true }
       ],

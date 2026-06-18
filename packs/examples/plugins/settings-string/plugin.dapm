@@ -7,9 +7,7 @@
   "kind": "general",
   "description": "Example plugin with a single string setting. Shows the string in a fixed footer banner so the effect of onSettingsChanged is immediately observable.",
   "author": "DaLang",
-  "permissions": {
-    "hosts": ["<all_urls>"]
-  },
+  "hosts": ["<all_urls>"],
   "settings": [
     { "key": "bannerText", "type": "string", "label": "Banner text", "default": "DaLang" }
   ]

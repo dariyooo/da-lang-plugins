@@ -7,9 +7,7 @@
   "kind": "subtitle",
   "description": "Reference subtitle plugin — demonstrates da.register('get'), da.emit('subtitles'), MutationObserver push, and language tagging.",
   "author": "DaLang",
-  "permissions": {
-    "hosts": ["<all_urls>"]
-  },
+  "hosts": ["<all_urls>"],
   "settings": [
     {
       "key": "enabled",

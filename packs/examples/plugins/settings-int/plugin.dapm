@@ -7,9 +7,7 @@
   "kind": "general",
   "description": "Example plugin with a single int setting. Sets the base font size on the page body so the effect of onSettingsChanged is immediately observable.",
   "author": "DaLang",
-  "permissions": {
-    "hosts": ["<all_urls>"]
-  },
+  "hosts": ["<all_urls>"],
   "settings": [
     { "key": "fontSize", "type": "int", "label": "Base font size (px)", "default": 16, "min": 8, "max": 32 }
   ]

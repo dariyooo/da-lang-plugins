@@ -7,9 +7,7 @@
   "kind": "general",
   "description": "Example plugin with a single bool setting. Toggles a visible banner at the top of the page so the effect of onSettingsChanged is immediately observable.",
   "author": "DaLang",
-  "permissions": {
-    "hosts": ["<all_urls>"]
-  },
+  "hosts": ["<all_urls>"],
   "settings": [
     { "key": "enabled", "type": "bool", "label": "Show banner", "default": true }
   ]

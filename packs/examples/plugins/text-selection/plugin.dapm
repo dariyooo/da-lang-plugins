@@ -7,9 +7,7 @@
   "kind": "textSelection",
   "description": "Reference textSelection plugin — exercises all 5 settings types, live settings updates, selection/clear events, and trigger modes.",
   "author": "DaLang",
-  "permissions": {
-    "hosts": ["<all_urls>"]
-  },
+  "hosts": ["<all_urls>"],
   "settings": [
     { "key": "enabled",     "type": "bool",   "label": "Enable selection",      "default": true },
     { "key": "minLength",   "type": "int",    "label": "Minimum word length",   "default": 1, "min": 1, "max": 20 },

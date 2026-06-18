@@ -7,9 +7,7 @@
   "kind": "general",
   "description": "Reference general plugin — demonstrates direct DOM modification and da.register for app-callable functions.",
   "author": "DaLang",
-  "permissions": {
-    "hosts": ["<all_urls>"]
-  },
+  "hosts": ["<all_urls>"],
   "settings": [
     {
       "key": "invertColors",

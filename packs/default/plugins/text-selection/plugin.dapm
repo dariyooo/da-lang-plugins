@@ -7,9 +7,7 @@
   "kind": "textSelection",
   "description": "Detects the word under the cursor and emits it via da.emit('selection'). Uses Yomitan's DOMTextScanner for accurate CJK boundary detection.",
   "author": "DaLang",
-  "permissions": {
-    "hosts": ["<all_urls>"]
-  },
+  "hosts": ["<all_urls>"],
   "settings": [
     {
       "key": "enabled",
