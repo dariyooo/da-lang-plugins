@@ -2126,27 +2126,81 @@ Issues can be reported at ${this._issueUrl}`;
   };
 
   // ../../../../../tmp/text-selection-entry.mjs
+  var _s = {
+    enabled: true,
+    scanLength: 16,
+    scanDelay: 20,
+    scanResolution: "character",
+    layoutAwareScan: true,
+    deepDomScan: false,
+    normalizeCssZoom: true,
+    scanOnTouchTap: true,
+    scanOnTouchMove: false,
+    sentenceExtent: 200,
+    alphanumeric: true,
+    selectText: true,
+    scanWithoutMouseMove: true
+  };
   var _generator = new TextSourceGenerator();
-  var _enabled = true;
   if (typeof da !== "undefined") {
     da.on("settingsChanged", (s) => {
-      _enabled = s.enabled ?? true;
+      _s = { ..._s, ...s };
     });
   }
+  function _adjustCoords(x, y) {
+    if (!_s.normalizeCssZoom) return { x, y };
+    const zoom = parseFloat(document.documentElement.style.zoom) || 1;
+    return { x: x / zoom, y: y / zoom };
+  }
+  function _extractSentence(node, offset, extent) {
+    if (extent <= 0) return "";
+    try {
+      const fwd = new DOMTextScanner(node, offset, false, _s.layoutAwareScan);
+      fwd.seek(extent);
+      const bwd = new DOMTextScanner(node, offset, false, _s.layoutAwareScan);
+      bwd.seek(-extent);
+      return bwd.content + fwd.content;
+    } catch (_) {
+      return "";
+    }
+  }
   function _scanAt(x, y) {
-    if (!_enabled) return;
-    const source = _generator.getRangeFromPoint(x, y, {
+    if (!_s.enabled) return;
+    const { x: ax, y: ay } = _adjustCoords(x, y);
+    const source = _generator.getRangeFromPoint(ax, ay, {
       forceOffset: false,
-      allowExtensionUrl: false
+      allowExtensionUrl: false,
+      normalizeCssZoom: _s.normalizeCssZoom
     });
     if (!source) return;
-    const text = source.text();
-    if (!text || !text.trim()) return;
-    const rects = source.getRects();
+    const fullText = source.text();
+    if (!fullText || !fullText.trim()) return;
+    if (!_s.alphanumeric && !/[\u3000-\u9fff\uf900-\ufaff\u{20000}-\u{2a6df}]/u.test(fullText)) return;
+    const text = _s.scanResolution === "word" ? fullText.match(/\S+/)?.[0] ?? fullText : fullText.slice(0, _s.scanLength);
+    const rects = source.getRects ? source.getRects() : [];
     const rect = rects.length > 0 ? rects[0] : null;
+    if (_s.selectText && source.getRange) {
+      try {
+        const sel = window.getSelection();
+        if (sel) {
+          sel.removeAllRanges();
+          sel.addRange(source.getRange());
+        }
+      } catch (_) {
+      }
+    }
+    let sentence = "";
+    if (_s.sentenceExtent > 0 && source.getStartNode) {
+      sentence = _extractSentence(
+        source.getStartNode(),
+        source.getStartOffset?.() ?? 0,
+        _s.sentenceExtent
+      );
+    }
     if (typeof da !== "undefined") {
       da.emit("selection", {
         text,
+        sentence,
         x,
         y,
         rect: rect ? { top: rect.top, left: rect.left, width: rect.width, height: rect.height } : null
@@ -2155,19 +2209,32 @@ Issues can be reported at ${this._issueUrl}`;
   }
   var _lastX = 0;
   var _lastY = 0;
-  var _rafPending = false;
+  var _timeoutId = null;
   document.addEventListener("mousemove", (e) => {
     _lastX = e.clientX;
     _lastY = e.clientY;
-    if (_rafPending) return;
-    _rafPending = true;
-    requestAnimationFrame(() => {
-      _rafPending = false;
+    if (_s.scanDelay <= 0) {
       _scanAt(_lastX, _lastY);
-    });
+      return;
+    }
+    clearTimeout(_timeoutId);
+    _timeoutId = setTimeout(() => _scanAt(_lastX, _lastY), _s.scanDelay);
   }, { passive: true });
+  document.addEventListener("visibilitychange", () => {
+    if (!_s.scanWithoutMouseMove) return;
+    if (document.visibilityState === "visible") _scanAt(_lastX, _lastY);
+  });
+  window.addEventListener("focus", () => {
+    if (_s.scanWithoutMouseMove) _scanAt(_lastX, _lastY);
+  });
   document.addEventListener("touchend", (e) => {
+    if (!_s.scanOnTouchTap) return;
     const t = e.changedTouches[0];
+    if (t) _scanAt(t.clientX, t.clientY);
+  }, { passive: true });
+  document.addEventListener("touchmove", (e) => {
+    if (!_s.scanOnTouchMove) return;
+    const t = e.touches[0];
     if (t) _scanAt(t.clientX, t.clientY);
   }, { passive: true });
 })();
