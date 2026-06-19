@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to pin (e.g. 4.0.1). Tags this commit as v<version> and freezes the default-pack scripts at it.'
+        description: "Version to pin (e.g. 4.0.1). Tags this commit as v<version> and freezes the default-pack scripts at it."
         required: true
 
 permissions:
@@ -33,11 +33,6 @@ jobs:
           name: v${{ inputs.version }}
           generate_release_notes: false
           body: |
-            Default-pack manifest pinned to tag `v${{ inputs.version }}`.
-
-            Every `codeUrl` resolves against this tag, so the scripts this release
-            installs are frozen at this commit. `updateUrl` still points at `main`,
-            so the in-app store can update past this version.
-
-            Upload `dalang_default_pack.dapp` to the matching DaKanji-Data release.
+            Default-pack pinned to tag `v${{ inputs.version }}`.
+            In app Plugin Manager can still update to latest supported version.
           files: dist/dalang_default_pack.dapp
