@@ -12,16 +12,10 @@
   ],
   "settings": [
     {
-      "key": "enabled",
-      "type": "bool",
-      "label": "Enable text selection",
-      "default": true
-    },
-    {
       "key": "scanLength",
       "type": "int",
       "label": "Scan length",
-      "description": "Maximum number of characters scanned from the cursor position.",
+      "description": "How many characters to read starting at the cursor — the most a single lookup can capture.",
       "default": 16,
       "min": 1,
       "max": 200
@@ -30,62 +24,58 @@
       "key": "scanDelay",
       "type": "int",
       "label": "Scan delay (ms)",
-      "description": "Milliseconds to wait after the cursor stops before scanning. 0 scans on every animation frame.",
+      "description": "How long to wait after the cursor stops moving before scanning. Higher values use less CPU; 0 scans continuously.",
       "default": 20,
       "min": 0,
       "max": 1000
     },
     {
-      "key": "scanResolution",
-      "type": "choice",
-      "label": "Scan resolution",
-      "description": "Whether to snap the selection to character or word boundaries.",
-      "options": [
-        "character",
-        "word"
-      ],
-      "default": "character"
-    },
-    {
       "key": "layoutAwareScan",
       "type": "bool",
       "label": "Layout-aware scan",
-      "description": "Insert synthetic newlines based on CSS block layout when extracting text.",
+      "description": "Respect the page's line and block breaks so a scan doesn't run text together across separate elements.",
       "default": true
     },
     {
       "key": "deepDomScan",
       "type": "bool",
       "label": "Deep DOM scan",
-      "description": "Scan inside shadow DOM and iframes.",
+      "description": "Also look through overlapping and nested elements at the cursor, not just the topmost one. More thorough but slower.",
       "default": false
     },
     {
       "key": "normalizeCssZoom",
       "type": "bool",
       "label": "Normalize CSS zoom",
-      "description": "Correct hit-test coordinates when the page uses CSS zoom.",
+      "description": "Adjust for CSS page zoom so the correct text is detected on zoomed pages.",
+      "default": true
+    },
+    {
+      "key": "scanOnHover",
+      "type": "bool",
+      "label": "Scan on hover",
+      "description": "Scan the word under the cursor as you move the mouse.",
       "default": true
     },
     {
       "key": "scanOnTouchTap",
       "type": "bool",
       "label": "Scan on tap",
-      "description": "Trigger a scan when the user taps the screen.",
+      "description": "Scan the word you tap.",
       "default": true
     },
     {
       "key": "scanOnTouchMove",
       "type": "bool",
-      "label": "Scan on touch drag",
-      "description": "Trigger a scan while dragging a finger across the screen.",
+      "label": "Scan while dragging (touch)",
+      "description": "On a touchscreen, keep scanning the text under your finger as you slide it — the touch equivalent of mouse hover.",
       "default": false
     },
     {
       "key": "sentenceExtent",
       "type": "int",
       "label": "Sentence context length",
-      "description": "Characters of surrounding sentence context included with each selection event.",
+      "description": "How many surrounding characters to include as sentence context with each result. 0 turns sentence context off.",
       "default": 200,
       "min": 0,
       "max": 1000
@@ -94,21 +84,21 @@
       "key": "alphanumeric",
       "type": "bool",
       "label": "Scan non-CJK text",
-      "description": "Emit selections for Latin, numeric, and other non-CJK characters. Disable to only scan Japanese, Chinese, and Korean text.",
+      "description": "Also scan Latin letters and numbers. Turn off to scan only Japanese, Chinese, and Korean text.",
       "default": true
     },
     {
       "key": "selectText",
       "type": "bool",
       "label": "Highlight selected text",
-      "description": "Visually select the matched word in the page using the browser's native text selection.",
+      "description": "Highlight the matched word on the page using the browser's text selection.",
       "default": true
     },
     {
       "key": "scanWithoutMouseMove",
       "type": "bool",
       "label": "Scan without mouse move",
-      "description": "Re-scan at the current pointer position when the page gains focus, without requiring the mouse to move.",
+      "description": "Re-scan at the last cursor position when the tab regains focus, without moving the pointer.",
       "default": true
     }
   ]

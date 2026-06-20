@@ -18,15 +18,10 @@
       ],
       "settings": [
         {
-          "key": "enabled",
-          "type": "bool",
-          "label": "Enable text selection",
-          "default": true
-        },
-        {
           "key": "scanLength",
           "type": "int",
           "label": "Scan length",
+          "description": "How many characters to read starting at the cursor — the most a single lookup can capture.",
           "default": 16,
           "min": 1,
           "max": 200
@@ -35,54 +30,58 @@
           "key": "scanDelay",
           "type": "int",
           "label": "Scan delay (ms)",
+          "description": "How long to wait after the cursor stops moving before scanning. Higher values use less CPU; 0 scans continuously.",
           "default": 20,
           "min": 0,
           "max": 1000
         },
         {
-          "key": "scanResolution",
-          "type": "choice",
-          "label": "Scan resolution",
-          "default": "character",
-          "options": [
-            "character",
-            "word"
-          ]
-        },
-        {
           "key": "layoutAwareScan",
           "type": "bool",
           "label": "Layout-aware scan",
+          "description": "Respect the page's line and block breaks so a scan doesn't run text together across separate elements.",
           "default": true
         },
         {
           "key": "deepDomScan",
           "type": "bool",
           "label": "Deep DOM scan",
+          "description": "Also look through overlapping and nested elements at the cursor, not just the topmost one. More thorough but slower.",
           "default": false
         },
         {
           "key": "normalizeCssZoom",
           "type": "bool",
           "label": "Normalize CSS zoom",
+          "description": "Adjust for CSS page zoom so the correct text is detected on zoomed pages.",
+          "default": true
+        },
+        {
+          "key": "scanOnHover",
+          "type": "bool",
+          "label": "Scan on hover",
+          "description": "Scan the word under the cursor as you move the mouse.",
           "default": true
         },
         {
           "key": "scanOnTouchTap",
           "type": "bool",
           "label": "Scan on tap",
+          "description": "Scan the word you tap.",
           "default": true
         },
         {
           "key": "scanOnTouchMove",
           "type": "bool",
-          "label": "Scan on touch drag",
+          "label": "Scan while dragging (touch)",
+          "description": "On a touchscreen, keep scanning the text under your finger as you slide it — the touch equivalent of mouse hover.",
           "default": false
         },
         {
           "key": "sentenceExtent",
           "type": "int",
           "label": "Sentence context length",
+          "description": "How many surrounding characters to include as sentence context with each result. 0 turns sentence context off.",
           "default": 200,
           "min": 0,
           "max": 1000
@@ -91,18 +90,21 @@
           "key": "alphanumeric",
           "type": "bool",
           "label": "Scan non-CJK text",
+          "description": "Also scan Latin letters and numbers. Turn off to scan only Japanese, Chinese, and Korean text.",
           "default": true
         },
         {
           "key": "selectText",
           "type": "bool",
           "label": "Highlight selected text",
+          "description": "Highlight the matched word on the page using the browser's text selection.",
           "default": true
         },
         {
           "key": "scanWithoutMouseMove",
           "type": "bool",
           "label": "Scan without mouse move",
+          "description": "Re-scan at the last cursor position when the tab regains focus, without moving the pointer.",
           "default": true
         }
       ],

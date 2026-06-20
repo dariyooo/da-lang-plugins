@@ -108,13 +108,12 @@ import { DOMTextScanner } from '${scanner}';
 
 // ── settings (kept in sync with plugin.dapm) ──────────────────────────────────
 let _s = {
-  enabled:             true,
   scanLength:          16,
   scanDelay:           20,
-  scanResolution:      'character',
   layoutAwareScan:     true,
   deepDomScan:         false,
   normalizeCssZoom:    true,
+  scanOnHover:         true,
   scanOnTouchTap:      true,
   scanOnTouchMove:     false,
   sentenceExtent:      200,
@@ -126,7 +125,7 @@ let _s = {
 const _generator = new TextSourceGenerator();
 
 if (typeof da !== 'undefined') {
-  da.on('settingsChanged', (s) => { _s = { ..._s, ...s }; });
+  da.onSettingsChanged((s) => { _s = { ..._s, ...s }; });
 }
 
 // ── coordinate adjustment for CSS zoom ───────────────────────────────────────
@@ -136,24 +135,25 @@ function _adjustCoords(x, y) {
   return { x: x / zoom, y: y / zoom };
 }
 
-// ── extract surrounding sentence context ─────────────────────────────────────
-function _extractSentence(node, offset, extent) {
-  if (extent <= 0) return '';
+// ── extract surrounding sentence context + the cursor offset within it ────────
+function _extractSentence(source, extent) {
+  const empty = { text: '', offset: 0 };
+  if (extent <= 0 || !source.range) return empty;
   try {
+    const node = source.range.startContainer;
+    const offset = source.range.startOffset;
     const fwd = new DOMTextScanner(node, offset, false, _s.layoutAwareScan);
     fwd.seek(extent);
     const bwd = new DOMTextScanner(node, offset, false, _s.layoutAwareScan);
     bwd.seek(-extent);
-    return bwd.content + fwd.content;
+    return { text: bwd.content + fwd.content, offset: bwd.content.length };
   } catch (_) {
-    return '';
+    return empty;
   }
 }
 
 // ── core scan ────────────────────────────────────────────────────────────────
 function _scanAt(x, y) {
-  if (!_s.enabled) return;
-
   const { x: ax, y: ay } = _adjustCoords(x, y);
   const source = _generator.getRangeFromPoint(ax, ay, {
     forceOffset: false,
@@ -162,56 +162,68 @@ function _scanAt(x, y) {
   });
   if (!source) return;
 
+  // getRangeFromPoint returns a collapsed caret range; grow it forward to
+  // capture the text before reading it.
+  if (source.setEndOffset) {
+    try {
+      source.setEndOffset(_s.scanLength, false, _s.layoutAwareScan);
+    } catch (_) {}
+  }
+
   const fullText = source.text();
+  if (typeof da !== 'undefined') da.log('debug', 'scan', 'text: ' + JSON.stringify(fullText));
   if (!fullText || !fullText.trim()) return;
 
   // alphanumeric filter: skip if text has no CJK characters and setting is off
   if (!_s.alphanumeric && !/[\\u3000-\\u9fff\\uf900-\\ufaff\\u{20000}-\\u{2a6df}]/u.test(fullText)) return;
 
-  const text = _s.scanResolution === 'word'
-    ? fullText.match(/\\S+/)?.[0] ?? fullText
-    : fullText.slice(0, _s.scanLength);
+  const text = fullText;
 
   const rects = source.getRects ? source.getRects() : [];
   const rect  = rects.length > 0 ? rects[0] : null;
 
-  // selectText: apply browser native selection to the matched range
-  if (_s.selectText && source.getRange) {
+  // selectText: highlight the matched range using the source's own select().
+  if (_s.selectText && source.select) {
     try {
-      const sel = window.getSelection();
-      if (sel) {
-        sel.removeAllRanges();
-        sel.addRange(source.getRange());
-      }
+      source.select();
     } catch (_) {}
   }
 
   let sentence = '';
-  if (_s.sentenceExtent > 0 && source.getStartNode) {
-    sentence = _extractSentence(
-      source.getStartNode(),
-      source.getStartOffset?.() ?? 0,
-      _s.sentenceExtent,
-    );
+  let sentenceOffset = 0;
+  if (_s.sentenceExtent > 0) {
+    const extracted = _extractSentence(source, _s.sentenceExtent);
+    sentence = extracted.text;
+    sentenceOffset = extracted.offset;
   }
 
   if (typeof da !== 'undefined') {
-    da.emit('selection', {
+    const payload = {
       text,
       sentence,
+      sentenceOffset,
       x,
       y,
       rect: rect ? { top: rect.top, left: rect.left, width: rect.width, height: rect.height } : null,
-    });
+    };
+    da.log('info', 'selection', 'selected: ' + text, payload);
+    da.emit('selection', payload);
   }
 }
 
 // ── mouse ─────────────────────────────────────────────────────────────────────
 let _lastX = 0, _lastY = 0, _timeoutId = null;
+let _loggedMove = false;
+if (typeof da !== 'undefined') da.log('debug', 'input', 'listeners attached');
 
 document.addEventListener('mousemove', (e) => {
+  if (!_loggedMove && typeof da !== 'undefined') {
+    _loggedMove = true;
+    da.log('debug', 'input', 'mousemove received');
+  }
   _lastX = e.clientX;
   _lastY = e.clientY;
+  if (!_s.scanOnHover) return;
   if (_s.scanDelay <= 0) {
     _scanAt(_lastX, _lastY);
     return;
@@ -235,10 +247,12 @@ window.addEventListener('focus', () => {
 // ── touch ─────────────────────────────────────────────────────────────────────
 // Listeners are unconditional; the setting is checked inside so changes take
 // effect without re-registering.
-document.addEventListener('touchend', (e) => {
+// pointerup fires for mouse, touch, and pen with client coordinates — unlike
+// click, which the embedded webview may not deliver.
+document.addEventListener('pointerup', (e) => {
+  if (typeof da !== 'undefined') da.log('debug', 'input', 'pointerup received; scanOnTouchTap=' + _s.scanOnTouchTap);
   if (!_s.scanOnTouchTap) return;
-  const t = e.changedTouches[0];
-  if (t) _scanAt(t.clientX, t.clientY);
+  _scanAt(e.clientX, e.clientY);
 }, { passive: true });
 
 document.addEventListener('touchmove', (e) => {
