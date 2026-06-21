@@ -113,11 +113,10 @@ let _s = {
   layoutAwareScan:     true,
   deepDomScan:         false,
   normalizeCssZoom:    true,
-  scanOnHover:         true,
+  scanOnHover:         false,
   scanOnTouchTap:      true,
-  scanOnTouchMove:     false,
   sentenceExtent:      200,
-  alphanumeric:        true,
+  alphanumeric:        false,
   selectText:          true,
   scanWithoutMouseMove: true,
 };
@@ -253,12 +252,6 @@ document.addEventListener('pointerup', (e) => {
   if (typeof da !== 'undefined') da.log('debug', 'input', 'pointerup received; scanOnTouchTap=' + _s.scanOnTouchTap);
   if (!_s.scanOnTouchTap) return;
   _scanAt(e.clientX, e.clientY);
-}, { passive: true });
-
-document.addEventListener('touchmove', (e) => {
-  if (!_s.scanOnTouchMove) return;
-  const t = e.touches[0];
-  if (t) _scanAt(t.clientX, t.clientY);
 }, { passive: true });
 `.trimStart();
 }

@@ -36,6 +36,18 @@
           "max": 1000
         },
         {
+          "key": "selectionMethod",
+          "type": "choice",
+          "label": "Selection method",
+          "description": "How the scanned text is split into the word to look up: a single character, a MeCab token's dictionary form, or a MeCab lemma by character.",
+          "options": [
+            "char",
+            "mecabLemmaToken",
+            "mecabLemmaChar"
+          ],
+          "default": "mecabLemmaToken"
+        },
+        {
           "key": "layoutAwareScan",
           "type": "bool",
           "label": "Layout-aware scan",
@@ -61,7 +73,7 @@
           "type": "bool",
           "label": "Scan on hover",
           "description": "Scan the word under the cursor as you move the mouse.",
-          "default": true
+          "default": false
         },
         {
           "key": "scanOnTouchTap",
@@ -69,13 +81,6 @@
           "label": "Scan on tap",
           "description": "Scan the word you tap.",
           "default": true
-        },
-        {
-          "key": "scanOnTouchMove",
-          "type": "bool",
-          "label": "Scan while dragging (touch)",
-          "description": "On a touchscreen, keep scanning the text under your finger as you slide it — the touch equivalent of mouse hover.",
-          "default": false
         },
         {
           "key": "sentenceExtent",
@@ -91,7 +96,7 @@
           "type": "bool",
           "label": "Scan non-CJK text",
           "description": "Also scan Latin letters and numbers. Turn off to scan only Japanese, Chinese, and Korean text.",
-          "default": true
+          "default": false
         },
         {
           "key": "selectText",
