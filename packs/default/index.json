@@ -7,7 +7,7 @@
     {
       "id": "da.default.text-selection",
       "name": "Text Selection",
-      "version": "0.1.0-yomitan.26.5.19.0",
+      "version": "0.1.0-yomitan.26.6.15.0",
       "runtime": "webview",
       "family": "browserPlugin",
       "kind": "textSelection",
@@ -120,7 +120,10 @@
           "key": "reading",
           "type": "choice",
           "label": "Reading script",
-          "options": ["hiragana", "katakana"],
+          "options": [
+            "hiragana",
+            "katakana"
+          ],
           "default": "hiragana"
         }
       ],
