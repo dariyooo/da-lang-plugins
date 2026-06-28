@@ -120,6 +120,21 @@ Watch the logs live in the app:
 3. The console streams each plugin's `da.log` / `da.emit` output, tagged by plugin
    and level — filter to `error` to spot failures.
 
+## Tests
+
+JS-side tests run on Node's built-in runner — no install:
+
+```sh
+npm test        # or: node --test
+```
+
+`bridge_harness.mjs` loads the real `da_browser_core_bridge.js` from the host app
+(`../../flutter_packages/da_lang/...` — this repo checked out as a submodule) into
+a fake `window` with a stubbed `flutter_inappwebview` channel, so a test asserts
+exactly what a plugin's `da.*` calls send to and receive from the app.
+`test/bridge.test.mjs` covers the `da.host.*` payload shapes, per-plugin scoping,
+`emit`, `matches`, and `invoke`.
+
 ## CI
 
 `.github/workflows/build-default-pack.yml` downloads the latest stable Yomitan,

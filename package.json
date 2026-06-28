@@ -1,0 +1,9 @@
+{
+  "name": "da-lang-plugins",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Plugins and packs for DaLang-based apps, plus their JS tests.",
+  "scripts": {
+    "test": "node --test"
+  }
+}
