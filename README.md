@@ -39,6 +39,73 @@ members); a mismatched plugin makes the install throw.
   loaded in debug builds.
 - **extended** (`da.extended`) — extra plugins unlocked by purchase.
 
+## Host APIs (`da.host.*`)
+
+`da.host` lets a plugin use app features the page can't reach on its own. Every
+call is async — await the result or catch the error. A plugin may only call
+capabilities it lists in `needs` (in its `.dapm`); a call to anything it didn't
+list is refused.
+
+`tts`, `ocr` and `llm` each offer a choice of engines. `da.host.<cap>.engines()`
+returns the ones usable right now as `[{ id, name }]`; an empty list means none is
+available on this device (not downloaded, not bought, or unsupported), so check it
+and fall back. Pass `{ engine: id }` to pick one, or leave it out for the default.
+`language` has a single implementation and no engine selection.
+
+`da.host.call(capability, op, args, engine?)` is the generic form behind all of
+the calls below.
+
+### tts — `needs: { "tts": 1 }`
+
+| call | returns |
+| --- | --- |
+| `da.host.tts(text, { language?, voice?, engine? })` | `bool` — whether speech started |
+| `da.host.tts.engines()` | `[{ id, name }]` |
+
+### ocr — `needs: { "ocr": 1 }`
+
+`full` takes a base64 image (the plugin already has the bytes, e.g. from an
+`<img>`), the languages to look for as ISO 639-3 codes (`["jpn", "eng"]`), and a
+level of `"fast"` or `"accurate"`. Boxes are in image pixels; `line` is the line
+the region sits on.
+
+| call | returns |
+| --- | --- |
+| `da.host.ocr.full(imageBase64, { languages?, level?, engine? })` | `[{ text, box: { left, top, width, height }, line }]` |
+| `da.host.ocr.engines()` | `[{ id, name, languages: [iso639_3], levels: ["fast", "accurate"] }]` |
+
+### llm — `needs: { "llm": 1 }`
+
+No engine ships yet, so `engines()` returns nothing and `complete` rejects until
+one is added.
+
+| call | returns |
+| --- | --- |
+| `da.host.llm.complete(prompt, { engine? })` | `String` |
+| `da.host.llm.engines()` | `[{ id, name }]` |
+
+### language — `needs: { "language": 1 }`
+
+The active language processor — MeCab for Japanese, jieba for Chinese later —
+chosen by the app's language.
+
+| call | returns |
+| --- | --- |
+| `da.host.language.parse(text)` | `[{ surface, base, reading, pos }]`, one per word; `pos` is a list of tags |
+| `da.host.language.getTermReadingPairs(pairs)` | for each `{ term, reading }`, a list of `{ term, ruby }` segments (`ruby` empty for a kana run) |
+| `da.host.language.findSentences(text)` | `[{ text, start, end }]` |
+| `da.host.language.findParagraphs(text)` | `[{ text, start, end }]` |
+| `da.host.language.splitIntoLookupUnits(text, startingIndex, maxLength)` | `[String]`, lookup candidates at the cursor, best first |
+| `da.host.language.deconjugate(term)` | `[{ deconjugatedTerm, partsOfSpeech, rules }]` |
+| `da.host.language.deconjugateAll(terms)` | the same, one list per term |
+| `da.host.language.normalize(term)` | `String` |
+| `da.host.language.normalizeAll(terms)` | `[String]` |
+| `da.host.language.isIdeographic(text)` | `bool` |
+| `da.host.language.extractIdeographs(texts)` | `[String]` |
+
+Camera and microphone aren't here: a plugin uses the normal web `getUserMedia`,
+and the in-app browser shows the OS permission dialog. Nothing to declare.
+
 ## Errors & the plugin console
 
 Plugins log through `da.log(level, tag, message)` (`level` = `debug` / `info` /
