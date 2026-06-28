@@ -92,7 +92,7 @@ chosen by the app's language.
 | call | returns |
 | --- | --- |
 | `da.host.language.parse(text)` | `[{ surface, base, reading, pos }]`, one per word; `pos` is a list of tags |
-| `da.host.language.getTermReadingPairs(pairs)` | for each `{ term, reading }`, a list of `{ term, ruby }` segments (`ruby` empty for a kana run) |
+| `da.host.language.getTermReadingPairs(pairs, { script? })` | for each `{ term, reading }`, a list of `{ term, ruby }` segments (`ruby` empty for a kana run); `script` is `"hiragana"` (default) or `"katakana"` |
 | `da.host.language.findSentences(text)` | `[{ text, start, end }]` |
 | `da.host.language.findParagraphs(text)` | `[{ text, start, end }]` |
 | `da.host.language.splitIntoLookupUnits(text, startingIndex, maxLength)` | `[String]`, lookup candidates at the cursor, best first |
