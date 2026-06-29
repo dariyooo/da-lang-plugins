@@ -105,7 +105,9 @@
       "version": "0.1.0",
       "runtime": "webview",
       "family": "browserPlugin",
-      "needs": {"language": 1},
+      "needs": {
+        "language": 1
+      },
       "kind": "general",
       "description": "Annotates text with reading (furigana) ruby tags via the language processor.",
       "author": "DaLang",
