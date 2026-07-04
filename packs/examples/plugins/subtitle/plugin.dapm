@@ -1,12 +1,12 @@
 {
   "id": "da.examples.subtitle",
   "name": "Subtitle Example",
-  "version": "0.1.0",
+  "version": "0.4.0",
   "runtime": "webview",
   "family": "browserPlugin",
   "needs": {},
   "kind": "subtitle",
-  "description": "Reference subtitle plugin — demonstrates da.register('get'), da.emit('subtitles'), MutationObserver push, and language tagging.",
+  "description": "Reference subtitle plugin — a site-agnostic starting point: reads [data-subtitle] / <p> captions, emits the <video> clock via da.emit('playback'), and registers play/pause/seek. Works on any page with a <video>.",
   "author": "DaLang",
   "hosts": ["<all_urls>"],
   "settings": [

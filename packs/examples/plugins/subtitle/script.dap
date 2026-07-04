@@ -1,13 +1,16 @@
 (function () {
   var cfg = { enabled: true, language: 'ja' };
+  var _video = null;
+  var _lastText = '';
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
+  // ── Captions ────────────────────────────────────────────────────────────────
+  // A site-agnostic reference: elements tagged [data-subtitle], then visible <p>
+  // as a fallback so it also works on a plain test page. (Site-specific readers
+  // like YouTube's live in their own plugin.)
 
   function readSubtitles() {
     if (!cfg.enabled) return [];
 
-    // First try site-specific [data-subtitle] elements (real subtitle plugins
-    // would target e.g. .ytp-caption-segment on YouTube).
     var specific = document.querySelectorAll('[data-subtitle]');
     if (specific.length > 0) {
       return Array.prototype.map.call(specific, function (el) {
@@ -20,44 +23,69 @@
       });
     }
 
-    // Fallback for testing on any page: treat visible <p> text as subtitle lines.
     return Array.prototype.slice
       .call(document.querySelectorAll('p'))
       .filter(function (el) { return el.textContent.trim().length > 0; })
       .slice(0, 5)
       .map(function (el) {
-        return {
-          text: el.textContent.trim().slice(0, 120),
-          language: cfg.language,
-          start: 0,
-          end: 0,
-        };
+        return { text: el.textContent.trim().slice(0, 120), language: cfg.language, start: 0, end: 0 };
       });
   }
 
-  // ── Pull: app calls da.register('get') to request current subtitles ───────
+  function emitCaptions() {
+    if (!cfg.enabled) return;
+    var subs = readSubtitles();
+    var key = subs.map(function (s) { return s.text; }).join('|');
+    if (key === _lastText) return;
+    _lastText = key;
+    da.emit('subtitles', subs);
+  }
 
+  // ── Playback clock + controls (generic <video>) ─────────────────────────────
+  // The clock is emitted regardless of the captions setting, so externally
+  // pulled subtitles stay in sync even when the page has no captions of its own.
+
+  function emitClock() {
+    if (!_video) return;
+    da.emit('playback', {
+      currentTime: _video.currentTime,
+      duration: _video.duration,
+      playing: !_video.paused,
+    });
+  }
+
+  function wireVideo() {
+    var v = document.querySelector('video');
+    if (!v || v === _video) return;
+    _video = v;
+    v.addEventListener('timeupdate', emitClock);
+    v.addEventListener('play', emitClock);
+    v.addEventListener('pause', emitClock);
+    v.addEventListener('seeked', emitClock);
+    emitClock();
+  }
+
+  da.register('play', function () { if (_video) _video.play(); });
+  da.register('pause', function () { if (_video) _video.pause(); });
+  da.register('seek', function (args) {
+    if (_video && args && typeof args.to === 'number') _video.currentTime = args.to / 1000;
+  });
   da.register('get', readSubtitles);
 
-  // ── Push: emit whenever the DOM changes ───────────────────────────────────
+  // ── Observe the page for late-loading captions / video ──────────────────────
 
   var observer = new MutationObserver(function () {
-    da.emit('subtitles', readSubtitles());
+    wireVideo();
+    emitCaptions();
   });
-
-  observer.observe(document.documentElement, {
-    subtree: true,
-    childList: true,
-    characterData: true,
-  });
-
-  // ── Live settings ─────────────────────────────────────────────────────────
+  observer.observe(document.documentElement, { subtree: true, childList: true, characterData: true });
 
   da.onSettingsChanged(function (s) {
-    cfg.enabled  = s.enabled;
+    cfg.enabled = s.enabled;
     cfg.language = s.language;
-    // Re-emit immediately so the language / enabled change is visible.
-    da.emit('subtitles', readSubtitles());
+    _lastText = '';
+    emitCaptions();
   });
 
+  wireVideo();
 })();

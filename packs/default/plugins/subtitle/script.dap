@@ -3,6 +3,9 @@
   var SELECTOR = '.ytp-caption-segment';
   var _lastText = '';
   var _observer = null;
+  var _video = null;
+
+  // ── Captions (YouTube-specific DOM) ─────────────────────────────────────────
 
   function readAndEmit() {
     if (!cfg.enabled) return;
@@ -20,21 +23,48 @@
     }
   }
 
-  function startObserver() {
-    if (_observer) return;
-    _observer = new MutationObserver(readAndEmit);
-    _observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  // ── Playback clock (generic <video>) ────────────────────────────────────────
+  // Emitted regardless of the captions setting, so externally pulled subtitles
+  // stay in sync even when the page has no captions of its own.
+
+  function emitClock() {
+    if (!_video) return;
+    da.emit('playback', {
+      currentTime: _video.currentTime,
+      duration: _video.duration,
+      playing: !_video.paused,
+    });
   }
 
-  function stopObserver() {
-    if (_observer) { _observer.disconnect(); _observer = null; }
-    _lastText = '';
+  function wireVideo() {
+    var v = document.querySelector('video');
+    if (!v || v === _video) return;
+    _video = v;
+    v.addEventListener('timeupdate', emitClock);
+    v.addEventListener('play', emitClock);
+    v.addEventListener('pause', emitClock);
+    v.addEventListener('seeked', emitClock);
+    emitClock();
+  }
+
+  da.register('play', function () { if (_video) _video.play(); });
+  da.register('pause', function () { if (_video) _video.pause(); });
+  da.register('seek', function (args) {
+    if (_video && args && typeof args.to === 'number') _video.currentTime = args.to / 1000;
+  });
+
+  // ── Observe the page for late-loading captions / video ──────────────────────
+  // Runs unconditionally: it also (re)finds the <video> for the clock.
+
+  function onMutation() {
+    wireVideo();
+    readAndEmit();
   }
 
   da.onSettingsChanged(function (s) {
     cfg.enabled = !!s.enabled;
     cfg.language = s.language || 'ja';
-    if (cfg.enabled) { startObserver(); readAndEmit(); } else { stopObserver(); }
+    readAndEmit();
   });
 
   da.register('get', function () {
@@ -48,4 +78,8 @@
       return [];
     }
   });
+
+  _observer = new MutationObserver(onMutation);
+  _observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  wireVideo();
 })();
