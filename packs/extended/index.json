@@ -1,7 +1,42 @@
 {
   "id": "da.extended",
   "name": "DaLang Extended Plugins",
-  "version": "0.0.0",
+  "version": "0.2.0",
   "updateUrl": "https://raw.githubusercontent.com/CaptainDario/da-lang-plugins/main/packs/extended/index.json",
-  "plugins": []
+  "plugins": [
+    {
+      "id": "da.extended.jimaku",
+      "name": "Jimaku",
+      "version": "0.2.0",
+      "runtime": "quickjs",
+      "family": "fetchPlugin",
+      "kind": "subtitle",
+      "needs": {},
+      "description": "Fetches Japanese subtitles from jimaku.cc, a subtitle database for learners. Needs a free API key from your jimaku.cc profile.",
+      "author": "DaLang",
+      "settings": [
+        {
+          "key": "apiKey",
+          "type": "string",
+          "label": "API key",
+          "description": "Your jimaku.cc API key, from https://jimaku.cc/profile. Without it, search returns nothing.",
+          "default": ""
+        }
+      ],
+      "codeUrl": "https://raw.githubusercontent.com/CaptainDario/da-lang-plugins/main/packs/extended/plugins/jimaku/script.dap"
+    },
+    {
+      "id": "da.extended.kitsunekko",
+      "name": "Kitsunekko",
+      "version": "0.2.0",
+      "runtime": "quickjs",
+      "family": "fetchPlugin",
+      "kind": "subtitle",
+      "needs": {},
+      "description": "Fetches Japanese subtitles from kitsunekko.net by scraping its directory listing. No account needed.",
+      "author": "DaLang",
+      "settings": [],
+      "codeUrl": "https://raw.githubusercontent.com/CaptainDario/da-lang-plugins/main/packs/extended/plugins/kitsunekko/script.dap"
+    }
+  ]
 }

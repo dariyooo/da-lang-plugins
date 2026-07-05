@@ -66,12 +66,14 @@
     {
       "id": "da.default.subtitle",
       "name": "YouTube Subtitles",
-      "version": "0.3.0",
+      "version": "0.5.0",
       "runtime": "webview",
       "family": "browserPlugin",
-      "needs": {},
+      "needs": {
+        "language": 1
+      },
       "kind": "subtitle",
-      "description": "Reads .ytp-caption-segment nodes on YouTube and emits subtitles via da.emit('subtitles'), and emits the <video> clock via da.emit('playback') so externally pulled subtitles stay in sync. Registers play/pause/seek handlers so the app can control playback.",
+      "description": "Lists YouTube's caption tracks — every language, manual and auto-generated — reads the line on screen, and emits the <video> clock plus play/pause/seek so the app controls playback. Captions render with YouTube's own token, hidden behind the app's overlay.",
       "author": "DaLang",
       "hosts": [
         "*youtube.com*",
@@ -79,22 +81,18 @@
       ],
       "settings": [
         {
-          "key": "enabled",
+          "key": "onlyStudyLanguage",
           "type": "bool",
-          "label": "Enable subtitles",
+          "label": "Only my study language",
+          "description": "Show only subtitle tracks in the language you're studying. Turn off to pick any available language.",
           "default": true
         },
         {
-          "key": "language",
-          "type": "choice",
-          "label": "Language",
-          "options": [
-            "ja",
-            "zh",
-            "ko",
-            "en"
-          ],
-          "default": "ja"
+          "key": "autoEnable",
+          "type": "bool",
+          "label": "Auto-show subtitles",
+          "description": "Show a video's subtitles automatically when one is available, without opening the picker.",
+          "default": true
         }
       ],
       "codeUrl": "https://raw.githubusercontent.com/CaptainDario/da-lang-plugins/main/packs/default/plugins/subtitle/script.dap"

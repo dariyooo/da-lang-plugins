@@ -1,0 +1,12 @@
+{
+  "id": "da.extended.kitsunekko",
+  "name": "Kitsunekko",
+  "version": "0.2.0",
+  "runtime": "quickjs",
+  "family": "fetchPlugin",
+  "kind": "subtitle",
+  "needs": {},
+  "description": "Fetches Japanese subtitles from kitsunekko.net by scraping its directory listing. No account needed.",
+  "author": "DaLang",
+  "settings": []
+}

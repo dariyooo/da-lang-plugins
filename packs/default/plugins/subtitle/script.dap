@@ -1,31 +1,165 @@
 (function () {
-  var cfg = { enabled: true, language: 'ja' };
-  var SELECTOR = '.ytp-caption-segment';
-  var _lastText = '';
-  var _observer = null;
+  var cfg = {
+    onlyStudyLanguage: !da.settings || da.settings.onlyStudyLanguage !== false,
+    autoEnable: !da.settings || da.settings.autoEnable !== false,
+  };
+  var SEGMENT = '.ytp-caption-segment';
   var _video = null;
+  var _lastVideoId = '';
+  var _available = []; // [{ id, code, label, track }] every track (incl. auto)
+  var _studyCodes = {}; // the study language in every ISO code variant
+  var _studyReady = false;
+  var _activeId = ''; // vssId of the track we're currently reading
+  var _line = '';
 
-  // ── Captions (YouTube-specific DOM) ─────────────────────────────────────────
+  // ── Captions: list every track (manual + auto-generated) from the player
+  // response, let YouTube render the picked one (with its own token), and read
+  // the text it draws — its on-screen rendering hidden. Sidesteps `pot`. ────────
 
-  function readAndEmit() {
-    if (!cfg.enabled) return;
-    try {
-      var nodes = document.querySelectorAll(SELECTOR);
-      if (!nodes.length) return;
-      var text = Array.prototype.map.call(nodes, function (n) {
-        return n.textContent;
-      }).join('').trim();
-      if (!text || text === _lastText) return;
-      _lastText = text;
-      da.emit('subtitles', [{ text: text, language: cfg.language, start: 0, end: 0 }]);
-    } catch (e) {
-      da.log('error', 'subtitle', String(e));
+  // Hide YouTube's caption window (kept in the DOM + populated, just invisible).
+  var style = document.createElement('style');
+  style.textContent = '.ytp-caption-window-container { opacity: 0 !important; }';
+  (document.head || document.documentElement).appendChild(style);
+
+  // The study language, in every ISO variant, so a YouTube track code can be
+  // matched locally.
+  da.host.language.code().then(function (c) {
+    if (c) {
+      ['iso639_1', 'iso639_2b', 'iso639_2t', 'iso639_3'].forEach(function (k) {
+        if (c[k]) _studyCodes[c[k]] = true;
+      });
     }
+    da.log('info', 'subtitle', 'code() -> ' + JSON.stringify(c) + ' | studyCodes: ' + JSON.stringify(_studyCodes));
+    _studyReady = true;
+    emitTracks();
+    maybeAutoEnable();
+  });
+
+  function isStudy(code) {
+    return !!_studyCodes[String(code).split('-')[0]];
   }
 
-  // ── Playback clock (generic <video>) ────────────────────────────────────────
-  // Emitted regardless of the captions setting, so externally pulled subtitles
-  // stay in sync even when the page has no captions of its own.
+  // Brace-matched JSON object that follows [marker] in [html].
+  function extractJson(html, marker) {
+    var i = html.indexOf(marker);
+    if (i < 0) return null;
+    i = html.indexOf('{', i);
+    if (i < 0) return null;
+    var depth = 0, inStr = false, esc = false;
+    for (var j = i; j < html.length; j++) {
+      var c = html[j];
+      if (inStr) {
+        if (esc) esc = false;
+        else if (c === '\\') esc = true;
+        else if (c === '"') inStr = false;
+      } else if (c === '"') inStr = true;
+      else if (c === '{') depth++;
+      else if (c === '}' && --depth === 0) {
+        try { return JSON.parse(html.slice(i, j + 1)); } catch (e) { return null; }
+      }
+    }
+    return null;
+  }
+
+  function playerResponse() {
+    try {
+      var mp = document.getElementById('movie_player');
+      if (mp && typeof mp.getPlayerResponse === 'function') {
+        var r = mp.getPlayerResponse();
+        if (r && r.captions) return Promise.resolve(r);
+      }
+    } catch (e) {}
+    if (window.ytInitialPlayerResponse && window.ytInitialPlayerResponse.captions) {
+      return Promise.resolve(window.ytInitialPlayerResponse);
+    }
+    return fetch(location.href)
+      .then(function (r) { return r.text(); })
+      .then(function (html) { return extractJson(html, 'ytInitialPlayerResponse'); })
+      .catch(function () { return null; });
+  }
+
+  function labelOf(t) {
+    var name = (t.name && (t.name.simpleText ||
+      (t.name.runs && t.name.runs[0] && t.name.runs[0].text))) || t.languageCode;
+    if (t.kind === 'asr' && name.toLowerCase().indexOf('auto') < 0) name += ' (auto)';
+    return name;
+  }
+
+  function fetchTrackList() {
+    playerResponse().then(function (pr) {
+      if (!pr) { da.log('warn', 'subtitle', 'no player response'); return; }
+      var vid = pr.videoDetails && pr.videoDetails.videoId;
+      if (!vid || vid === _lastVideoId) return;
+      _lastVideoId = vid;
+      var renderer = pr.captions && pr.captions.playerCaptionsTracklistRenderer;
+      var list = (renderer && renderer.captionTracks) || [];
+      _line = '';
+      _activeId = '';
+      _available = list.map(function (t) {
+        return {
+          id: t.vssId || (t.languageCode + (t.kind === 'asr' ? '.asr' : '')),
+          code: t.languageCode,
+          label: labelOf(t),
+          track: t,
+        };
+      });
+      da.log('info', 'subtitle', 'track codes: ' + JSON.stringify(_available.map(function (t) { return t.code; })));
+      emitTracks();
+      maybeAutoEnable();
+    });
+  }
+
+  // The tracks the picker shows: only the study language when the setting is on and
+  // one exists, else all.
+  function visibleTracks() {
+    if (cfg.onlyStudyLanguage) {
+      var s = _available.filter(function (t) { return isStudy(t.code); });
+      if (s.length) return s;
+    }
+    return _available;
+  }
+
+  // Each visible track as a pickable entry; the active one carries the current line.
+  function emitTracks() {
+    da.emit('subtitles', visibleTracks().map(function (t) {
+      return {
+        id: t.id,
+        language: t.code,
+        label: t.label,
+        cues: (t.id === _activeId && _line) ? [{ text: _line }] : [],
+      };
+    }));
+  }
+
+  function readLine() {
+    if (!_available.length) return;
+    var nodes = document.querySelectorAll(SEGMENT);
+    var text = Array.prototype.map.call(nodes, function (n) { return n.textContent; }).join('').trim();
+    if (text === _line) return;
+    _line = text;
+    emitTracks();
+  }
+
+  // Point YouTube's captions at [track] (its full descriptor, so a manual vs
+  // auto-generated track of the same language is chosen precisely). Best-effort.
+  function enableTrack(track) {
+    try {
+      var mp = document.getElementById('movie_player');
+      if (mp && typeof mp.loadModule === 'function') mp.loadModule('captions');
+      if (mp && typeof mp.setOption === 'function') mp.setOption('captions', 'track', track);
+    } catch (e) {}
+  }
+
+  // Render the study-language track (else the first) so it auto-shows.
+  function maybeAutoEnable() {
+    if (!cfg.autoEnable || !_studyReady || _activeId || !_available.length) return;
+    var s = _available.filter(function (t) { return isStudy(t.code); });
+    var pick = s.length ? s[0] : _available[0];
+    _activeId = pick.id;
+    enableTrack(pick.track);
+  }
+
+  // ── Playback clock + controls (generic <video>) ─────────────────────────────
 
   function emitClock() {
     if (!_video) return;
@@ -44,6 +178,7 @@
     v.addEventListener('play', emitClock);
     v.addEventListener('pause', emitClock);
     v.addEventListener('seeked', emitClock);
+    v.addEventListener('loadedmetadata', fetchTrackList);
     emitClock();
   }
 
@@ -53,33 +188,42 @@
     if (_video && args && typeof args.to === 'number') _video.currentTime = args.to / 1000;
   });
 
-  // ── Observe the page for late-loading captions / video ──────────────────────
-  // Runs unconditionally: it also (re)finds the <video> for the clock.
+  // Picker-driven: point YouTube's captions at the track with [id], reread.
+  da.register('setTrack', function (args) {
+    if (!args || !args.id) return;
+    _activeId = args.id;
+    for (var i = 0; i < _available.length; i++) {
+      if (_available[i].id === args.id) { enableTrack(_available[i].track); break; }
+    }
+    _line = '';
+    emitTracks();
+  });
 
-  function onMutation() {
+  // ── Observe for late-loading captions / SPA-navigated video ─────────────────
+
+  var observer = new MutationObserver(function () {
     wireVideo();
-    readAndEmit();
-  }
+    readLine();
+  });
+  observer.observe(document.body || document.documentElement, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+  });
+  document.addEventListener('yt-navigate-finish', function () {
+    _available = [];
+    _activeId = '';
+    _lastVideoId = '';
+    wireVideo();
+    fetchTrackList();
+  });
 
   da.onSettingsChanged(function (s) {
-    cfg.enabled = !!s.enabled;
-    cfg.language = s.language || 'ja';
-    readAndEmit();
+    cfg.onlyStudyLanguage = s.onlyStudyLanguage !== false;
+    cfg.autoEnable = s.autoEnable !== false;
+    emitTracks();
   });
 
-  da.register('get', function () {
-    try {
-      var nodes = document.querySelectorAll(SELECTOR);
-      return Array.prototype.map.call(nodes, function (n) {
-        return { text: n.textContent, language: cfg.language };
-      });
-    } catch (e) {
-      da.log('error', 'subtitle', String(e));
-      return [];
-    }
-  });
-
-  _observer = new MutationObserver(onMutation);
-  _observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   wireVideo();
+  fetchTrackList();
 })();

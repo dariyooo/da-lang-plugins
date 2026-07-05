@@ -1,7 +1,7 @@
 {
   "id": "da.examples.subtitle",
   "name": "Subtitle Example",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "runtime": "webview",
   "family": "browserPlugin",
   "needs": {},

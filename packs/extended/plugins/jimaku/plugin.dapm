@@ -1,0 +1,20 @@
+{
+  "id": "da.extended.jimaku",
+  "name": "Jimaku",
+  "version": "0.2.0",
+  "runtime": "quickjs",
+  "family": "fetchPlugin",
+  "kind": "subtitle",
+  "needs": {},
+  "description": "Fetches Japanese subtitles from jimaku.cc, a subtitle database for learners. Needs a free API key from your jimaku.cc profile.",
+  "author": "DaLang",
+  "settings": [
+    {
+      "key": "apiKey",
+      "type": "string",
+      "label": "API key",
+      "description": "Your jimaku.cc API key, from https://jimaku.cc/profile. Without it, search returns nothing.",
+      "default": ""
+    }
+  ]
+}

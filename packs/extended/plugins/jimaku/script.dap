@@ -1,0 +1,88 @@
+// Fetches Japanese subtitles from jimaku.cc. Search returns entries; each entry's
+// files (optionally narrowed by episode) become pickable candidates. The API key
+// comes from the plugin's `apiKey` setting. https://jimaku.cc/api/docs
+class SubtitleFetchPlugin {
+  constructor() {
+    this.base = "https://jimaku.cc/api";
+    this.maxSeries = 40;
+    this.maxFiles = 200;
+  }
+
+  headers() {
+    var h = { "User-Agent": "DaLang" };
+    var key = (typeof da !== "undefined" && da.settings && da.settings.apiKey) || "";
+    if (key) h["Authorization"] = key;
+    return h;
+  }
+
+  // Series only — matching entries; episodes are fetched lazily by listEpisodes.
+  async searchSubtitles(text, opts) {
+    var res = await new Client().get(
+      this.base + "/entries/search?query=" + encodeURIComponent(text || ""),
+      this.headers()
+    );
+    if (res.statusCode !== 200) return [];
+    var entries = JSON.parse(res.body);
+    var series = [];
+    for (var i = 0; i < entries.length && series.length < this.maxSeries; i++) {
+      series.push({ id: String(entries[i].id), title: entries[i].english_name || entries[i].name });
+    }
+    return series;
+  }
+
+  async listEpisodes(seriesId) {
+    var res = await new Client().get(this.base + "/entries/" + seriesId + "/files", this.headers());
+    if (res.statusCode !== 200) return [];
+    var files = JSON.parse(res.body);
+    var episodes = [];
+    for (var i = 0; i < files.length && episodes.length < this.maxFiles; i++) {
+      episodes.push({
+        id: files[i].url,
+        title: files[i].name,
+        language: "ja",
+        season: parseSeason(files[i].name),
+        episode: parseEpisode(files[i].name),
+      });
+    }
+    return episodes;
+  }
+
+  async getSubtitle(id) {
+    var url = String(id).indexOf("http") === 0 ? id : "https://jimaku.cc" + id;
+    // Only send the API key to jimaku.cc itself — file URLs may live on a CDN.
+    var headers = url.indexOf("jimaku.cc") >= 0 ? this.headers() : { "User-Agent": "DaLang" };
+    var res = await new Client().get(url, headers);
+    return { content: res.body, format: extOf(id), language: "ja" };
+  }
+}
+
+function extOf(name) {
+  var clean = String(name).split("?")[0].split("#")[0];
+  var dot = clean.lastIndexOf(".");
+  return dot >= 0 ? clean.substring(dot + 1).toLowerCase() : "srt";
+}
+
+// Best-effort episode/season number from a show or file name.
+function parseEpisode(name) {
+  var s = String(name);
+  var m = s.match(/[sS]\d{1,2}[\s._-]*[eE](\d{1,3})/); // S01E08
+  if (m) return parseInt(m[1], 10);
+  m = s.match(/(?:^|[\s._\-\[(#])(?:e|ep|episode)[\s._]*?(\d{1,3})(?=\D|$)/i); // E08 / Ep 8
+  if (m) return parseInt(m[1], 10);
+  m = s.match(/第\s*(\d{1,3})\s*話/); // 第08話
+  if (m) return parseInt(m[1], 10);
+  m = s.match(/[\s._][-–][\s._]*(\d{1,3})(?=\D|$)/); // " - 08"
+  if (m) return parseInt(m[1], 10);
+  return null;
+}
+
+function parseSeason(name) {
+  var s = String(name);
+  var m = s.match(/[sS](\d{1,2})[\s._-]*[eE]\d{1,3}/); // S02E08
+  if (m) return parseInt(m[1], 10);
+  m = s.match(/(?:season|series)[\s._]*(\d{1,2})/i); // Season 3
+  if (m) return parseInt(m[1], 10);
+  m = s.match(/(\d{1,2})\s*期/); // 3期
+  if (m) return parseInt(m[1], 10);
+  return null;
+}

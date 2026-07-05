@@ -32,13 +32,19 @@
       });
   }
 
+  // One track per `da.emit('subtitles', ...)`; a plugin with several languages
+  // would push several. Here it's the single page track (or none).
+  function trackFor(subs) {
+    return subs.length ? [{ id: 'page', language: cfg.language, label: 'Page captions', cues: subs }] : [];
+  }
+
   function emitCaptions() {
     if (!cfg.enabled) return;
     var subs = readSubtitles();
     var key = subs.map(function (s) { return s.text; }).join('|');
     if (key === _lastText) return;
     _lastText = key;
-    da.emit('subtitles', subs);
+    da.emit('subtitles', trackFor(subs));
   }
 
   // ── Playback clock + controls (generic <video>) ─────────────────────────────
@@ -70,7 +76,7 @@
   da.register('seek', function (args) {
     if (_video && args && typeof args.to === 'number') _video.currentTime = args.to / 1000;
   });
-  da.register('get', readSubtitles);
+  da.register('get', function () { return trackFor(readSubtitles()); });
 
   // ── Observe the page for late-loading captions / video ──────────────────────
 
