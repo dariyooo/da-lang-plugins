@@ -3,7 +3,7 @@
   var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
   var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
-  // ../../../../../tmp/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/core/event-dispatcher.js
+  // ../../../../../../../../private/var/folders/rc/s_mp3vkx2qd0my62w8xpp4s40000gn/T/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/core/event-dispatcher.js
   var EventDispatcher = class {
     /**
      * Creates a new instance.
@@ -78,7 +78,7 @@
     }
   };
 
-  // ../../../../../tmp/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/core/extension-error.js
+  // ../../../../../../../../private/var/folders/rc/s_mp3vkx2qd0my62w8xpp4s40000gn/T/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/core/extension-error.js
   var ExtensionError = class _ExtensionError extends Error {
     /**
      * @param {string} message
@@ -148,7 +148,7 @@
     }
   };
 
-  // ../../../../../tmp/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/core/log.js
+  // ../../../../../../../../private/var/folders/rc/s_mp3vkx2qd0my62w8xpp4s40000gn/T/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/core/log.js
   var Logger = class extends EventDispatcher {
     constructor() {
       super();
@@ -257,7 +257,7 @@ Issues can be reported at ${this._issueUrl}`;
   };
   var log = new Logger();
 
-  // ../../../../../tmp/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/dom/document-util.js
+  // ../../../../../../../../private/var/folders/rc/s_mp3vkx2qd0my62w8xpp4s40000gn/T/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/dom/document-util.js
   var cssZoomSupported = null;
   var FIREFOX_RECT_EXCLUDED_LANGUAGES = /* @__PURE__ */ new Set(["th"]);
   function computeZoomScale(node) {
@@ -399,7 +399,7 @@ Issues can be reported at ${this._issueUrl}`;
     return typeof style === "object" && style !== null && typeof style.zoom === "string";
   }
 
-  // ../../../../../tmp/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/data/string-util.js
+  // ../../../../../../../../private/var/folders/rc/s_mp3vkx2qd0my62w8xpp4s40000gn/T/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/data/string-util.js
   function readCodePointsForward(text, position, count) {
     const textLength = text.length;
     let result = "";
@@ -446,7 +446,7 @@ Issues can be reported at ${this._issueUrl}`;
     return result;
   }
 
-  // ../../../../../tmp/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/dom/dom-text-scanner.js
+  // ../../../../../../../../private/var/folders/rc/s_mp3vkx2qd0my62w8xpp4s40000gn/T/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/dom/dom-text-scanner.js
   var _DOMTextScanner = class _DOMTextScanner {
     /**
      * Creates a new instance of a DOMTextScanner.
@@ -1007,7 +1007,7 @@ Issues can be reported at ${this._issueUrl}`;
   __publicField(_DOMTextScanner, "WORD_DELIMITER_REGEX", /[^\w\p{L}\p{N}]/u);
   var DOMTextScanner = _DOMTextScanner;
 
-  // ../../../../../tmp/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/dom/text-source-element.js
+  // ../../../../../../../../private/var/folders/rc/s_mp3vkx2qd0my62w8xpp4s40000gn/T/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/dom/text-source-element.js
   var TextSourceElement = class _TextSourceElement {
     /**
      * Creates a new instance of the class.
@@ -1219,12 +1219,12 @@ Issues can be reported at ${this._issueUrl}`;
     }
   };
 
-  // ../../../../../tmp/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/core/to-error.js
+  // ../../../../../../../../private/var/folders/rc/s_mp3vkx2qd0my62w8xpp4s40000gn/T/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/core/to-error.js
   function toError(value) {
     return value instanceof Error ? value : new Error(`${value}`);
   }
 
-  // ../../../../../tmp/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/dom/text-source-range.js
+  // ../../../../../../../../private/var/folders/rc/s_mp3vkx2qd0my62w8xpp4s40000gn/T/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/dom/text-source-range.js
   var TextSourceRange = class _TextSourceRange {
     /**
      * Creates a new instance of the class.
@@ -1495,7 +1495,7 @@ Issues can be reported at ${this._issueUrl}`;
     }
   };
 
-  // ../../../../../tmp/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/dom/text-source-generator.js
+  // ../../../../../../../../private/var/folders/rc/s_mp3vkx2qd0my62w8xpp4s40000gn/T/yomitan-26.6.15.0/yomitan-26.6.15.0/ext/js/dom/text-source-generator.js
   var TextSourceGenerator = class {
     constructor() {
       this._transparentColorPattern = /rgba\s*\([^)]*,\s*0(?:\.0+)?\s*\)/;
@@ -2125,7 +2125,7 @@ Issues can be reported at ${this._issueUrl}`;
     }
   };
 
-  // ../../../../../tmp/text-selection-entry.mjs
+  // ../../../../../../../../private/var/folders/rc/s_mp3vkx2qd0my62w8xpp4s40000gn/T/text-selection-entry.mjs
   var _s = {
     layoutAwareScan: true,
     deepDomScan: false,
@@ -2145,12 +2145,15 @@ Issues can be reported at ${this._issueUrl}`;
   };
   var _generator = new TextSourceGenerator();
   var _lastSource = null;
+  var _lastReported = null;
+  var _timeoutId = null;
   if (typeof da !== "undefined") {
     da.onSettingsChanged((s) => {
       _s = { ..._s, ...s };
     });
     da.onProfileChanged((p) => {
       _p = { ..._p, ...p };
+      _cancelHover();
     });
     da.register("applySelection", (range) => {
       const end = range && range.end || 0;
@@ -2180,6 +2183,14 @@ Issues can be reported at ${this._issueUrl}`;
         return true;
     }
   }
+  function _cancelHover() {
+    clearTimeout(_timeoutId);
+    _timeoutId = null;
+    _lastReported = null;
+  }
+  function _hoverAllowedWithoutEvent() {
+    return _p.scanOnHover && _p.scanOnHoverModifier === "none";
+  }
   function _adjustCoords(x, y) {
     if (!_s.normalizeCssZoom) return { x, y };
     const zoom = parseFloat(document.documentElement.style.zoom) || 1;
@@ -2200,14 +2211,14 @@ Issues can be reported at ${this._issueUrl}`;
       return empty;
     }
   }
-  function _scanAt(x, y) {
+  function _scanAt(x, y, skipSameWord = false) {
     try {
-      _scanAtImpl(x, y);
+      _scanAtImpl(x, y, skipSameWord);
     } catch (e) {
       if (typeof da !== "undefined") da.log("error", "text-selection", String(e));
     }
   }
-  function _scanAtImpl(x, y) {
+  function _scanAtImpl(x, y, skipSameWord) {
     const { x: ax, y: ay } = _adjustCoords(x, y);
     const source = _generator.getRangeFromPoint(ax, ay, {
       forceOffset: false,
@@ -2215,6 +2226,7 @@ Issues can be reported at ${this._issueUrl}`;
       normalizeCssZoom: _s.normalizeCssZoom
     });
     if (!source) return;
+    if (skipSameWord && _lastReported && _lastReported.hasSameStart(source)) return;
     if (source.setEndOffset) {
       try {
         source.setEndOffset(_p.scanLength, false, _s.layoutAwareScan);
@@ -2227,6 +2239,7 @@ Issues can be reported at ${this._issueUrl}`;
     if (!_s.alphanumeric && !/[\u3000-\u9fff\uf900-\ufaff\u{20000}-\u{2a6df}]/u.test(fullText)) return;
     const text = fullText;
     _lastSource = source;
+    _lastReported = source;
     const rects = source.getRects ? source.getRects() : [];
     const rect = rects.length > 0 ? rects[0] : null;
     if (_s.selectText && source.select) {
@@ -2257,7 +2270,6 @@ Issues can be reported at ${this._issueUrl}`;
   }
   var _lastX = 0;
   var _lastY = 0;
-  var _timeoutId = null;
   var _loggedMove = false;
   if (typeof da !== "undefined") da.log("debug", "input", "listeners attached");
   document.addEventListener("mousemove", (e) => {
@@ -2269,18 +2281,23 @@ Issues can be reported at ${this._issueUrl}`;
     _lastY = e.clientY;
     if (!_p.scanOnHover || !_modifierHeld(e, _p.scanOnHoverModifier)) return;
     if (_p.scanDelay <= 0) {
-      _scanAt(_lastX, _lastY);
+      _scanAt(_lastX, _lastY, true);
       return;
     }
     clearTimeout(_timeoutId);
-    _timeoutId = setTimeout(() => _scanAt(_lastX, _lastY), _p.scanDelay);
+    _timeoutId = setTimeout(() => _scanAt(_lastX, _lastY, true), _p.scanDelay);
   }, { passive: true });
+  document.addEventListener("mouseout", (e) => {
+    if (e.relatedTarget === null) _cancelHover();
+  }, { passive: true });
+  document.addEventListener("pointercancel", _cancelHover, { passive: true });
+  document.addEventListener("pointerdown", () => clearTimeout(_timeoutId), { passive: true });
   document.addEventListener("visibilitychange", () => {
-    if (!_s.scanWithoutMouseMove) return;
+    if (!_s.scanWithoutMouseMove || !_hoverAllowedWithoutEvent()) return;
     if (document.visibilityState === "visible") _scanAt(_lastX, _lastY);
   });
   window.addEventListener("focus", () => {
-    if (_s.scanWithoutMouseMove) _scanAt(_lastX, _lastY);
+    if (_s.scanWithoutMouseMove && _hoverAllowedWithoutEvent()) _scanAt(_lastX, _lastY);
   });
   document.addEventListener("pointerup", (e) => {
     if (typeof da !== "undefined") da.log("debug", "input", "pointerup received; scanOnTouchTap=" + _p.scanOnTouchTap);

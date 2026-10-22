@@ -64,7 +64,8 @@ function extractZip(zipPath, destDir) {
 // ── version resolution ────────────────────────────────────────────────────────
 
 async function resolveYomitanVersion(requested) {
-  if (requested) return requested.startsWith('v') ? requested : `v${requested}`;
+  // Yomitan tags carry no 'v' prefix (e.g. 26.6.15.0).
+  if (requested) return requested.replace(/^v/, '');
   console.log('Fetching latest stable Yomitan release…');
   const release = await httpsGetJson(
     'https://api.github.com/repos/yomidevs/yomitan/releases/latest',
@@ -133,9 +134,17 @@ const _generator = new TextSourceGenerator();
 // the highlight to the precise lookup unit it resolved (applySelection).
 let _lastSource = null;
 
+// The last reported source, so hovering within the same character doesn't
+// report it again. Kept separate from _lastSource, which applySelection narrows.
+let _lastReported = null;
+let _timeoutId = null;
+
 if (typeof da !== 'undefined') {
   da.onSettingsChanged((s) => { _s = { ..._s, ...s }; });
-  da.onProfileChanged((p) => { _p = { ..._p, ...p }; });
+  da.onProfileChanged((p) => {
+    _p = { ..._p, ...p };
+    _cancelHover();
+  });
 
   // Down-channel: the app resolved the unit and sends its length so we shrink
   // the broad scan selection to it. There's no selectionchange listener here,
@@ -166,6 +175,18 @@ function _modifierHeld(e, mod) {
   }
 }
 
+// ── pending hover scans ──────────────────────────────────────────────────────
+function _cancelHover() {
+  clearTimeout(_timeoutId);
+  _timeoutId = null;
+  _lastReported = null;
+}
+
+// Focus events carry no modifier state; they rescan only when hover needs no modifier.
+function _hoverAllowedWithoutEvent() {
+  return _p.scanOnHover && _p.scanOnHoverModifier === 'none';
+}
+
 // ── coordinate adjustment for CSS zoom ───────────────────────────────────────
 function _adjustCoords(x, y) {
   if (!_s.normalizeCssZoom) return { x, y };
@@ -191,15 +212,15 @@ function _extractSentence(source, extent) {
 }
 
 // ── core scan ────────────────────────────────────────────────────────────────
-function _scanAt(x, y) {
+function _scanAt(x, y, skipSameWord = false) {
   try {
-    _scanAtImpl(x, y);
+    _scanAtImpl(x, y, skipSameWord);
   } catch (e) {
     if (typeof da !== 'undefined') da.log('error', 'text-selection', String(e));
   }
 }
 
-function _scanAtImpl(x, y) {
+function _scanAtImpl(x, y, skipSameWord) {
   const { x: ax, y: ay } = _adjustCoords(x, y);
   const source = _generator.getRangeFromPoint(ax, ay, {
     forceOffset: false,
@@ -207,6 +228,7 @@ function _scanAtImpl(x, y) {
     normalizeCssZoom: _s.normalizeCssZoom,
   });
   if (!source) return;
+  if (skipSameWord && _lastReported && _lastReported.hasSameStart(source)) return;
 
   // getRangeFromPoint returns a collapsed caret range; grow it forward to
   // capture the text before reading it.
@@ -225,6 +247,7 @@ function _scanAtImpl(x, y) {
 
   const text = fullText;
   _lastSource = source;
+  _lastReported = source;
 
   const rects = source.getRects ? source.getRects() : [];
   const rect  = rects.length > 0 ? rects[0] : null;
@@ -259,7 +282,7 @@ function _scanAtImpl(x, y) {
 }
 
 // ── mouse ─────────────────────────────────────────────────────────────────────
-let _lastX = 0, _lastY = 0, _timeoutId = null;
+let _lastX = 0, _lastY = 0;
 let _loggedMove = false;
 if (typeof da !== 'undefined') da.log('debug', 'input', 'listeners attached');
 
@@ -272,23 +295,30 @@ document.addEventListener('mousemove', (e) => {
   _lastY = e.clientY;
   if (!_p.scanOnHover || !_modifierHeld(e, _p.scanOnHoverModifier)) return;
   if (_p.scanDelay <= 0) {
-    _scanAt(_lastX, _lastY);
+    _scanAt(_lastX, _lastY, true);
     return;
   }
   clearTimeout(_timeoutId);
-  _timeoutId = setTimeout(() => _scanAt(_lastX, _lastY), _p.scanDelay);
+  _timeoutId = setTimeout(() => _scanAt(_lastX, _lastY, true), _p.scanDelay);
 }, { passive: true });
+
+// Leaving the page or pressing a button cancels a pending hover scan.
+document.addEventListener('mouseout', (e) => {
+  if (e.relatedTarget === null) _cancelHover();
+}, { passive: true });
+document.addEventListener('pointercancel', _cancelHover, { passive: true });
+document.addEventListener('pointerdown', () => clearTimeout(_timeoutId), { passive: true });
 
 // ── scan without mouse move ───────────────────────────────────────────────────
 // Re-scan at the last known pointer position when the page regains focus so the
 // user doesn't need to wiggle the mouse after switching tabs or closing a popup.
 document.addEventListener('visibilitychange', () => {
-  if (!_s.scanWithoutMouseMove) return;
+  if (!_s.scanWithoutMouseMove || !_hoverAllowedWithoutEvent()) return;
   if (document.visibilityState === 'visible') _scanAt(_lastX, _lastY);
 });
 
 window.addEventListener('focus', () => {
-  if (_s.scanWithoutMouseMove) _scanAt(_lastX, _lastY);
+  if (_s.scanWithoutMouseMove && _hoverAllowedWithoutEvent()) _scanAt(_lastX, _lastY);
 });
 
 // ── touch ─────────────────────────────────────────────────────────────────────
