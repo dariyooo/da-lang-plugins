@@ -117,46 +117,49 @@ let _s = {
   scanWithoutMouseMove: true,
 };
 
-// ── profile settings (shared across every screen, delivered via da.profile) ───
+// ── profile settings (delivered via da.profile) ───────────────────────────────
+// Only how much text to read. The app applies the scan settings — tap/hover,
+// modifiers, delay — to every report.
 let _p = {
-  scanLength:          16,
-  scanDelay:           20,
-  sentenceExtent:      200,
-  scanOnHover:         false,
-  scanOnHoverModifier: 'none',
-  scanOnTouchTap:      true,
-  scanOnTapModifier:   'none',
+  scanLength:     16,
+  sentenceExtent: 200,
 };
 
 const _generator = new TextSourceGenerator();
 
-// The most recent scanned source, retained so the app can ask us to re-narrow
-// the highlight to the precise lookup unit it resolved (applySelection).
-let _lastSource = null;
+// Recent reports by id, so applySelection highlights the scan the app accepted
+// rather than whatever was reported after it.
+const _reported = new Map();
+const _maxReported = 16;
+let _nextId = 0;
 
-// The last reported source, so hovering within the same character doesn't
-// report it again. Kept separate from _lastSource, which applySelection narrows.
+// The last reported source and modifiers, so hovering within the same character
+// doesn't report it again.
 let _lastReported = null;
-let _timeoutId = null;
+let _lastReportedModifiers = '';
+
+// The range currently highlighted in the page.
+let _highlighted = null;
 
 if (typeof da !== 'undefined') {
   da.onSettingsChanged((s) => { _s = { ..._s, ...s }; });
   da.onProfileChanged((p) => {
     _p = { ..._p, ...p };
-    _cancelHover();
+    _lastReported = null;
   });
 
-  // Down-channel: the app resolved the unit and sends its length so we shrink
-  // the broad scan selection to it. There's no selectionchange listener here,
-  // so re-selecting can't loop back into a new scan.
+  // Down-channel: the app resolved the unit of scan [id] and sends its length,
+  // so we highlight exactly that unit. There's no selectionchange listener here,
+  // so selecting can't loop back into a new scan.
   da.register('applySelection', (range) => {
     const end = (range && range.end) || 0;
-    if (!_lastSource || !_lastSource.clone || end <= 0) return false;
+    const source = range && range.id != null ? _reported.get(range.id) : _lastReported;
+    if (!_s.selectText || !source || !source.clone || end <= 0) return false;
     try {
-      const narrowed = _lastSource.clone();
+      const narrowed = source.clone();
       if (narrowed.setEndOffset) narrowed.setEndOffset(end, false, _s.layoutAwareScan);
       if (narrowed.select) narrowed.select();
-      _lastSource = narrowed;
+      _highlighted = narrowed;
       return true;
     } catch (_) {
       return false;
@@ -167,35 +170,22 @@ if (typeof da !== 'undefined') {
   // Hovering the same word afterwards reports it again.
   da.register('clearSelection', () => {
     try {
-      if (_lastSource && _lastSource.deselect) _lastSource.deselect();
+      if (_highlighted && _highlighted.deselect) _highlighted.deselect();
     } catch (_) {}
-    _lastSource = null;
+    _highlighted = null;
     _lastReported = null;
     return true;
   });
 }
 
-// ── true when the modifier key gating a scan trigger is held (none = always) ──
-function _modifierHeld(e, mod) {
-  switch (mod) {
-    case 'alt':   return !!e.altKey;
-    case 'ctrl':  return !!e.ctrlKey;
-    case 'shift': return !!e.shiftKey;
-    case 'meta':  return !!e.metaKey;
-    default:      return true;
-  }
-}
-
-// ── pending hover scans ──────────────────────────────────────────────────────
-function _cancelHover() {
-  clearTimeout(_timeoutId);
-  _timeoutId = null;
-  _lastReported = null;
-}
-
-// Focus events carry no modifier state; they rescan only when hover needs no modifier.
-function _hoverAllowedWithoutEvent() {
-  return _p.scanOnHover && _p.scanOnHoverModifier === 'none';
+// ── the modifier keys held during a page event ────────────────────────────────
+function _modifiersOf(e) {
+  return [
+    e.altKey && 'alt',
+    e.ctrlKey && 'ctrl',
+    e.shiftKey && 'shift',
+    e.metaKey && 'meta',
+  ].filter(Boolean);
 }
 
 // ── coordinate adjustment for CSS zoom ───────────────────────────────────────
@@ -223,15 +213,15 @@ function _extractSentence(source, extent) {
 }
 
 // ── core scan ────────────────────────────────────────────────────────────────
-function _scanAt(x, y, skipSameWord = false) {
+function _scanAt(x, y, trigger, modifiers, skipSameWord = false) {
   try {
-    _scanAtImpl(x, y, skipSameWord);
+    _scanAtImpl(x, y, trigger, modifiers, skipSameWord);
   } catch (e) {
     if (typeof da !== 'undefined') da.log('error', 'text-selection', String(e));
   }
 }
 
-function _scanAtImpl(x, y, skipSameWord) {
+function _scanAtImpl(x, y, trigger, modifiers, skipSameWord) {
   const { x: ax, y: ay } = _adjustCoords(x, y);
   const source = _generator.getRangeFromPoint(ax, ay, {
     forceOffset: false,
@@ -239,7 +229,12 @@ function _scanAtImpl(x, y, skipSameWord) {
     normalizeCssZoom: _s.normalizeCssZoom,
   });
   if (!source) return;
-  if (skipSameWord && _lastReported && _lastReported.hasSameStart(source)) return;
+  if (
+    skipSameWord &&
+    _lastReported &&
+    _lastReported.hasSameStart(source) &&
+    _lastReportedModifiers === modifiers.join()
+  ) return;
 
   // getRangeFromPoint returns a collapsed caret range; grow it forward to
   // capture the text before reading it.
@@ -249,26 +244,25 @@ function _scanAtImpl(x, y, skipSameWord) {
     } catch (_) {}
   }
 
-  const fullText = source.text();
-  if (typeof da !== 'undefined') da.log('debug', 'scan', 'text: ' + JSON.stringify(fullText));
-  if (!fullText || !fullText.trim()) return;
+  const text = source.text();
+  if (typeof da !== 'undefined') da.log('debug', 'scan', 'text: ' + JSON.stringify(text));
+  if (!text || !text.trim()) return;
 
   // alphanumeric filter: skip if text has no CJK characters and setting is off
-  if (!_s.alphanumeric && !/[\\u3000-\\u9fff\\uf900-\\ufaff\\u{20000}-\\u{2a6df}]/u.test(fullText)) return;
+  if (!_s.alphanumeric && !/[\\u3000-\\u9fff\\uf900-\\ufaff\\u{20000}-\\u{2a6df}]/u.test(text)) return;
 
-  const text = fullText;
-  _lastSource = source;
   _lastReported = source;
+  _lastReportedModifiers = modifiers.join();
+  const id = ++_nextId;
+  _reported.set(id, source);
+  if (_reported.size > _maxReported) _reported.delete(_reported.keys().next().value);
 
-  const rects = source.getRects ? source.getRects() : [];
-  const rect  = rects.length > 0 ? rects[0] : null;
-
-  // selectText: highlight the matched range using the source's own select().
-  if (_s.selectText && source.select) {
-    try {
-      source.select();
-    } catch (_) {}
-  }
+  const rects = (source.getRects ? source.getRects() : []).map((r) => ({
+    left: r.left,
+    top: r.top,
+    width: r.width,
+    height: r.height,
+  }));
 
   let sentence = '';
   let sentenceOffset = 0;
@@ -279,23 +273,24 @@ function _scanAtImpl(x, y, skipSameWord) {
   }
 
   if (typeof da !== 'undefined') {
-    const payload = {
-      text,
-      sentence,
-      sentenceOffset,
-      x,
-      y,
-      rect: rect ? { top: rect.top, left: rect.left, width: rect.width, height: rect.height } : null,
-    };
+    const payload = { id, text, sentence, sentenceOffset, trigger, modifiers, rects };
     da.log('info', 'selection', 'selected: ' + text, payload);
     da.emit('selection', payload);
   }
 }
 
 // ── mouse ─────────────────────────────────────────────────────────────────────
+// Hover scans run at most once per frame; the app applies the scan delay.
 let _lastX = 0, _lastY = 0;
+let _hoverModifiers = [];
+let _hoverFrame = 0;
 let _loggedMove = false;
 if (typeof da !== 'undefined') da.log('debug', 'input', 'listeners attached');
+
+function _cancelHoverFrame() {
+  cancelAnimationFrame(_hoverFrame);
+  _hoverFrame = 0;
+}
 
 document.addEventListener('mousemove', (e) => {
   if (!_loggedMove && typeof da !== 'undefined') {
@@ -304,43 +299,46 @@ document.addEventListener('mousemove', (e) => {
   }
   _lastX = e.clientX;
   _lastY = e.clientY;
-  if (!_p.scanOnHover || !_modifierHeld(e, _p.scanOnHoverModifier)) return;
-  if (_p.scanDelay <= 0) {
-    _scanAt(_lastX, _lastY, true);
-    return;
-  }
-  clearTimeout(_timeoutId);
-  _timeoutId = setTimeout(() => _scanAt(_lastX, _lastY, true), _p.scanDelay);
+  _hoverModifiers = _modifiersOf(e);
+  if (_hoverFrame) return;
+  _hoverFrame = requestAnimationFrame(() => {
+    _hoverFrame = 0;
+    _scanAt(_lastX, _lastY, 'hover', _hoverModifiers, true);
+  });
 }, { passive: true });
 
-// Leaving the page or pressing a button cancels a pending hover scan.
+// Leaving the page tells the app to drop a pending hover lookup.
+function _pointerLeft() {
+  _cancelHoverFrame();
+  _lastReported = null;
+  if (typeof da !== 'undefined') da.emit('pointerLeft', null);
+}
+
 document.addEventListener('mouseout', (e) => {
-  if (e.relatedTarget === null) _cancelHover();
+  if (e.relatedTarget === null) _pointerLeft();
 }, { passive: true });
-document.addEventListener('pointercancel', _cancelHover, { passive: true });
-document.addEventListener('pointerdown', () => clearTimeout(_timeoutId), { passive: true });
+document.addEventListener('pointercancel', _pointerLeft, { passive: true });
+document.addEventListener('pointerdown', _cancelHoverFrame, { passive: true });
 
 // ── scan without mouse move ───────────────────────────────────────────────────
 // Re-scan at the last known pointer position when the page regains focus so the
 // user doesn't need to wiggle the mouse after switching tabs or closing a popup.
+// Focus events carry no key state, so these report no modifiers.
 document.addEventListener('visibilitychange', () => {
-  if (!_s.scanWithoutMouseMove || !_hoverAllowedWithoutEvent()) return;
-  if (document.visibilityState === 'visible') _scanAt(_lastX, _lastY);
+  if (!_s.scanWithoutMouseMove) return;
+  if (document.visibilityState === 'visible') _scanAt(_lastX, _lastY, 'hover', []);
 });
 
 window.addEventListener('focus', () => {
-  if (_s.scanWithoutMouseMove && _hoverAllowedWithoutEvent()) _scanAt(_lastX, _lastY);
+  if (_s.scanWithoutMouseMove) _scanAt(_lastX, _lastY, 'hover', []);
 });
 
 // ── touch ─────────────────────────────────────────────────────────────────────
-// Listeners are unconditional; the setting is checked inside so changes take
-// effect without re-registering.
 // pointerup fires for mouse, touch, and pen with client coordinates — unlike
 // click, which the embedded webview may not deliver.
 document.addEventListener('pointerup', (e) => {
-  if (typeof da !== 'undefined') da.log('debug', 'input', 'pointerup received; scanOnTouchTap=' + _p.scanOnTouchTap);
-  if (!_p.scanOnTouchTap || !_modifierHeld(e, _p.scanOnTapModifier)) return;
-  _scanAt(e.clientX, e.clientY);
+  if (typeof da !== 'undefined') da.log('debug', 'input', 'pointerup received');
+  _scanAt(e.clientX, e.clientY, 'tap', _modifiersOf(e));
 }, { passive: true });
 `.trimStart();
 }

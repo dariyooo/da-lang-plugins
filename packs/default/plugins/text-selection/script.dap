@@ -2136,33 +2136,32 @@ Issues can be reported at ${this._issueUrl}`;
   };
   var _p = {
     scanLength: 16,
-    scanDelay: 20,
-    sentenceExtent: 200,
-    scanOnHover: false,
-    scanOnHoverModifier: "none",
-    scanOnTouchTap: true,
-    scanOnTapModifier: "none"
+    sentenceExtent: 200
   };
   var _generator = new TextSourceGenerator();
-  var _lastSource = null;
+  var _reported = /* @__PURE__ */ new Map();
+  var _maxReported = 16;
+  var _nextId = 0;
   var _lastReported = null;
-  var _timeoutId = null;
+  var _lastReportedModifiers = "";
+  var _highlighted = null;
   if (typeof da !== "undefined") {
     da.onSettingsChanged((s) => {
       _s = { ..._s, ...s };
     });
     da.onProfileChanged((p) => {
       _p = { ..._p, ...p };
-      _cancelHover();
+      _lastReported = null;
     });
     da.register("applySelection", (range) => {
       const end = range && range.end || 0;
-      if (!_lastSource || !_lastSource.clone || end <= 0) return false;
+      const source = range && range.id != null ? _reported.get(range.id) : _lastReported;
+      if (!_s.selectText || !source || !source.clone || end <= 0) return false;
       try {
-        const narrowed = _lastSource.clone();
+        const narrowed = source.clone();
         if (narrowed.setEndOffset) narrowed.setEndOffset(end, false, _s.layoutAwareScan);
         if (narrowed.select) narrowed.select();
-        _lastSource = narrowed;
+        _highlighted = narrowed;
         return true;
       } catch (_) {
         return false;
@@ -2170,35 +2169,21 @@ Issues can be reported at ${this._issueUrl}`;
     });
     da.register("clearSelection", () => {
       try {
-        if (_lastSource && _lastSource.deselect) _lastSource.deselect();
+        if (_highlighted && _highlighted.deselect) _highlighted.deselect();
       } catch (_) {
       }
-      _lastSource = null;
+      _highlighted = null;
       _lastReported = null;
       return true;
     });
   }
-  function _modifierHeld(e, mod) {
-    switch (mod) {
-      case "alt":
-        return !!e.altKey;
-      case "ctrl":
-        return !!e.ctrlKey;
-      case "shift":
-        return !!e.shiftKey;
-      case "meta":
-        return !!e.metaKey;
-      default:
-        return true;
-    }
-  }
-  function _cancelHover() {
-    clearTimeout(_timeoutId);
-    _timeoutId = null;
-    _lastReported = null;
-  }
-  function _hoverAllowedWithoutEvent() {
-    return _p.scanOnHover && _p.scanOnHoverModifier === "none";
+  function _modifiersOf(e) {
+    return [
+      e.altKey && "alt",
+      e.ctrlKey && "ctrl",
+      e.shiftKey && "shift",
+      e.metaKey && "meta"
+    ].filter(Boolean);
   }
   function _adjustCoords(x, y) {
     if (!_s.normalizeCssZoom) return { x, y };
@@ -2220,14 +2205,14 @@ Issues can be reported at ${this._issueUrl}`;
       return empty;
     }
   }
-  function _scanAt(x, y, skipSameWord = false) {
+  function _scanAt(x, y, trigger, modifiers, skipSameWord = false) {
     try {
-      _scanAtImpl(x, y, skipSameWord);
+      _scanAtImpl(x, y, trigger, modifiers, skipSameWord);
     } catch (e) {
       if (typeof da !== "undefined") da.log("error", "text-selection", String(e));
     }
   }
-  function _scanAtImpl(x, y, skipSameWord) {
+  function _scanAtImpl(x, y, trigger, modifiers, skipSameWord) {
     const { x: ax, y: ay } = _adjustCoords(x, y);
     const source = _generator.getRangeFromPoint(ax, ay, {
       forceOffset: false,
@@ -2235,28 +2220,28 @@ Issues can be reported at ${this._issueUrl}`;
       normalizeCssZoom: _s.normalizeCssZoom
     });
     if (!source) return;
-    if (skipSameWord && _lastReported && _lastReported.hasSameStart(source)) return;
+    if (skipSameWord && _lastReported && _lastReported.hasSameStart(source) && _lastReportedModifiers === modifiers.join()) return;
     if (source.setEndOffset) {
       try {
         source.setEndOffset(_p.scanLength, false, _s.layoutAwareScan);
       } catch (_) {
       }
     }
-    const fullText = source.text();
-    if (typeof da !== "undefined") da.log("debug", "scan", "text: " + JSON.stringify(fullText));
-    if (!fullText || !fullText.trim()) return;
-    if (!_s.alphanumeric && !/[\u3000-\u9fff\uf900-\ufaff\u{20000}-\u{2a6df}]/u.test(fullText)) return;
-    const text = fullText;
-    _lastSource = source;
+    const text = source.text();
+    if (typeof da !== "undefined") da.log("debug", "scan", "text: " + JSON.stringify(text));
+    if (!text || !text.trim()) return;
+    if (!_s.alphanumeric && !/[\u3000-\u9fff\uf900-\ufaff\u{20000}-\u{2a6df}]/u.test(text)) return;
     _lastReported = source;
-    const rects = source.getRects ? source.getRects() : [];
-    const rect = rects.length > 0 ? rects[0] : null;
-    if (_s.selectText && source.select) {
-      try {
-        source.select();
-      } catch (_) {
-      }
-    }
+    _lastReportedModifiers = modifiers.join();
+    const id = ++_nextId;
+    _reported.set(id, source);
+    if (_reported.size > _maxReported) _reported.delete(_reported.keys().next().value);
+    const rects = (source.getRects ? source.getRects() : []).map((r) => ({
+      left: r.left,
+      top: r.top,
+      width: r.width,
+      height: r.height
+    }));
     let sentence = "";
     let sentenceOffset = 0;
     if (_p.sentenceExtent > 0) {
@@ -2265,22 +2250,21 @@ Issues can be reported at ${this._issueUrl}`;
       sentenceOffset = extracted.offset;
     }
     if (typeof da !== "undefined") {
-      const payload = {
-        text,
-        sentence,
-        sentenceOffset,
-        x,
-        y,
-        rect: rect ? { top: rect.top, left: rect.left, width: rect.width, height: rect.height } : null
-      };
+      const payload = { id, text, sentence, sentenceOffset, trigger, modifiers, rects };
       da.log("info", "selection", "selected: " + text, payload);
       da.emit("selection", payload);
     }
   }
   var _lastX = 0;
   var _lastY = 0;
+  var _hoverModifiers = [];
+  var _hoverFrame = 0;
   var _loggedMove = false;
   if (typeof da !== "undefined") da.log("debug", "input", "listeners attached");
+  function _cancelHoverFrame() {
+    cancelAnimationFrame(_hoverFrame);
+    _hoverFrame = 0;
+  }
   document.addEventListener("mousemove", (e) => {
     if (!_loggedMove && typeof da !== "undefined") {
       _loggedMove = true;
@@ -2288,29 +2272,32 @@ Issues can be reported at ${this._issueUrl}`;
     }
     _lastX = e.clientX;
     _lastY = e.clientY;
-    if (!_p.scanOnHover || !_modifierHeld(e, _p.scanOnHoverModifier)) return;
-    if (_p.scanDelay <= 0) {
-      _scanAt(_lastX, _lastY, true);
-      return;
-    }
-    clearTimeout(_timeoutId);
-    _timeoutId = setTimeout(() => _scanAt(_lastX, _lastY, true), _p.scanDelay);
+    _hoverModifiers = _modifiersOf(e);
+    if (_hoverFrame) return;
+    _hoverFrame = requestAnimationFrame(() => {
+      _hoverFrame = 0;
+      _scanAt(_lastX, _lastY, "hover", _hoverModifiers, true);
+    });
   }, { passive: true });
+  function _pointerLeft() {
+    _cancelHoverFrame();
+    _lastReported = null;
+    if (typeof da !== "undefined") da.emit("pointerLeft", null);
+  }
   document.addEventListener("mouseout", (e) => {
-    if (e.relatedTarget === null) _cancelHover();
+    if (e.relatedTarget === null) _pointerLeft();
   }, { passive: true });
-  document.addEventListener("pointercancel", _cancelHover, { passive: true });
-  document.addEventListener("pointerdown", () => clearTimeout(_timeoutId), { passive: true });
+  document.addEventListener("pointercancel", _pointerLeft, { passive: true });
+  document.addEventListener("pointerdown", _cancelHoverFrame, { passive: true });
   document.addEventListener("visibilitychange", () => {
-    if (!_s.scanWithoutMouseMove || !_hoverAllowedWithoutEvent()) return;
-    if (document.visibilityState === "visible") _scanAt(_lastX, _lastY);
+    if (!_s.scanWithoutMouseMove) return;
+    if (document.visibilityState === "visible") _scanAt(_lastX, _lastY, "hover", []);
   });
   window.addEventListener("focus", () => {
-    if (_s.scanWithoutMouseMove && _hoverAllowedWithoutEvent()) _scanAt(_lastX, _lastY);
+    if (_s.scanWithoutMouseMove) _scanAt(_lastX, _lastY, "hover", []);
   });
   document.addEventListener("pointerup", (e) => {
-    if (typeof da !== "undefined") da.log("debug", "input", "pointerup received; scanOnTouchTap=" + _p.scanOnTouchTap);
-    if (!_p.scanOnTouchTap || !_modifierHeld(e, _p.scanOnTapModifier)) return;
-    _scanAt(e.clientX, e.clientY);
+    if (typeof da !== "undefined") da.log("debug", "input", "pointerup received");
+    _scanAt(e.clientX, e.clientY, "tap", _modifiersOf(e));
   }, { passive: true });
 })();
