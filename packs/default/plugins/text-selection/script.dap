@@ -2168,6 +2168,15 @@ Issues can be reported at ${this._issueUrl}`;
         return false;
       }
     });
+    da.register("clearSelection", () => {
+      try {
+        if (_lastSource && _lastSource.deselect) _lastSource.deselect();
+      } catch (_) {
+      }
+      _lastSource = null;
+      _lastReported = null;
+      return true;
+    });
   }
   function _modifierHeld(e, mod) {
     switch (mod) {

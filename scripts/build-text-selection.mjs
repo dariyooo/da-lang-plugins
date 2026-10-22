@@ -162,6 +162,17 @@ if (typeof da !== 'undefined') {
       return false;
     }
   });
+
+  // Down-channel: another lookup surface took over, so the page highlight goes.
+  // Hovering the same word afterwards reports it again.
+  da.register('clearSelection', () => {
+    try {
+      if (_lastSource && _lastSource.deselect) _lastSource.deselect();
+    } catch (_) {}
+    _lastSource = null;
+    _lastReported = null;
+    return true;
+  });
 }
 
 // ── true when the modifier key gating a scan trigger is held (none = always) ──
