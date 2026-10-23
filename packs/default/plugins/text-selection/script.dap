@@ -2249,11 +2249,19 @@ Issues can be reported at ${this._issueUrl}`;
       sentence = extracted.text;
       sentenceOffset = extracted.offset;
     }
+    const language = _languageOf(source);
     if (typeof da !== "undefined") {
       const payload = { id, text, sentence, sentenceOffset, trigger, modifiers, rects };
+      if (language) payload.language = language;
       da.log("info", "selection", "selected: " + text, payload);
       da.emit("selection", payload);
     }
+  }
+  function _languageOf(source) {
+    const node = source.range ? source.range.startContainer : source.element;
+    const element = node && node.nodeType === 1 ? node : node && node.parentElement;
+    const declared = element && element.closest("[lang]");
+    return declared ? declared.getAttribute("lang").trim() : "";
   }
   var _lastX = 0;
   var _lastY = 0;

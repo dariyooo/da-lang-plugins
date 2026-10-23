@@ -272,11 +272,23 @@ function _scanAtImpl(x, y, trigger, modifiers, skipSameWord) {
     sentenceOffset = extracted.offset;
   }
 
+  const language = _languageOf(source);
+
   if (typeof da !== 'undefined') {
     const payload = { id, text, sentence, sentenceOffset, trigger, modifiers, rects };
+    if (language) payload.language = language;
     da.log('info', 'selection', 'selected: ' + text, payload);
     da.emit('selection', payload);
   }
+}
+
+// The language the page declares for the scanned text, or '' when it declares
+// none: the nearest 'lang' attribute, which the page root usually carries.
+function _languageOf(source) {
+  const node = source.range ? source.range.startContainer : source.element;
+  const element = node && node.nodeType === 1 ? node : node && node.parentElement;
+  const declared = element && element.closest('[lang]');
+  return declared ? declared.getAttribute('lang').trim() : '';
 }
 
 // ── mouse ─────────────────────────────────────────────────────────────────────
@@ -387,7 +399,7 @@ const bundleJs = await bundle(srcDir);
 
 // Derive a version from the yomitan tag (strip leading 'v')
 const yomitanVersion = tag.replace(/^v/, '');
-const pluginVersion = `0.2.0-yomitan.${yomitanVersion}`;
+const pluginVersion = `0.2.1-yomitan.${yomitanVersion}`;
 
 const pluginDir = join(repoRoot, 'packs', 'default', 'plugins', 'text-selection');
 const scriptPath = join(pluginDir, 'script.dap');
