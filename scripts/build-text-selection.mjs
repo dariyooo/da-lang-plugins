@@ -387,7 +387,7 @@ const bundleJs = await bundle(srcDir);
 
 // Derive a version from the yomitan tag (strip leading 'v')
 const yomitanVersion = tag.replace(/^v/, '');
-const pluginVersion = `0.1.0-yomitan.${yomitanVersion}`;
+const pluginVersion = `0.2.0-yomitan.${yomitanVersion}`;
 
 const pluginDir = join(repoRoot, 'packs', 'default', 'plugins', 'text-selection');
 const scriptPath = join(pluginDir, 'script.dap');
