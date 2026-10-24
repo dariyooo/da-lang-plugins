@@ -1,0 +1,162 @@
+// Reference media source: a Jellyfin server (https://jellyfin.org). Browses the
+// server's Movies + Series libraries, resolves a title's playable stream, and
+// exposes the server address + API key as source preferences. Talks to the
+// Jellyfin REST API (verify endpoints against your server's /api-docs).
+//
+// Auth: an API key (Dashboard → API Keys) sent as the `X-Emby-Token` header.
+// User-scoped item queries need a user id; this fetches the first user once.
+class DefaultExtension extends MProvider {
+  constructor() {
+    super();
+    this._userId = null;
+    this._pageSize = 30;
+  }
+
+  _pref(key) {
+    return new SharedPreferences().getString(key, "");
+  }
+
+  // Trailing-slash-safe base URL from the `address` preference.
+  _base() {
+    var a = this._pref("address");
+    return a.replace(/\/+$/, "");
+  }
+
+  getHeaders(url) {
+    return { "X-Emby-Token": this._pref("apiKey"), "Accept": "application/json" };
+  }
+
+  get supportsLatest() {
+    return true;
+  }
+
+  // The first user's id, needed for /Items?userId=… — fetched once and cached.
+  async _uid() {
+    if (this._userId) return this._userId;
+    var res = await new Client().get(this._base() + "/Users", this.getHeaders());
+    if (res.statusCode !== 200) return "";
+    var users = JSON.parse(res.body);
+    this._userId = users.length ? users[0].Id : "";
+    return this._userId;
+  }
+
+  _imageUrl(item) {
+    if (!item.ImageTags || !item.ImageTags.Primary) return "";
+    return this._base() + "/Items/" + item.Id + "/Images/Primary?tag=" + item.ImageTags.Primary;
+  }
+
+  _toManga(item) {
+    return {
+      name: item.Name,
+      link: item.Id,
+      imageUrl: this._imageUrl(item),
+    };
+  }
+
+  async _items(query, page) {
+    var uid = await this._uid();
+    if (!uid) return { list: [], hasNextPage: false };
+    var start = (page - 1) * this._pageSize;
+    var url =
+      this._base() +
+      "/Items?userId=" + encodeURIComponent(uid) +
+      "&Recursive=true&IncludeItemTypes=Movie,Series&SortBy=SortName" +
+      "&StartIndex=" + start + "&Limit=" + this._pageSize + query;
+    var res = await new Client().get(url, this.getHeaders());
+    if (res.statusCode !== 200) return { list: [], hasNextPage: false };
+    var data = JSON.parse(res.body);
+    var items = data.Items || [];
+    var list = [];
+    for (var i = 0; i < items.length; i++) list.push(this._toManga(items[i]));
+    return { list: list, hasNextPage: start + items.length < (data.TotalRecordCount || 0) };
+  }
+
+  async getPopular(page) {
+    return await this._items("", page);
+  }
+
+  async getLatestUpdates(page) {
+    return await this._items("&SortBy=DateCreated&SortOrder=Descending", page);
+  }
+
+  async search(query, page, filters) {
+    return await this._items("&searchTerm=" + encodeURIComponent(query || ""), page);
+  }
+
+  async getDetail(url) {
+    var uid = await this._uid();
+    var res = await new Client().get(
+      this._base() + "/Users/" + uid + "/Items/" + url,
+      this.getHeaders()
+    );
+    var item = res.statusCode === 200 ? JSON.parse(res.body) : {};
+    var chapters = [];
+    if (item.Type === "Series") {
+      var eps = await new Client().get(
+        this._base() + "/Shows/" + url + "/Episodes?userId=" + uid,
+        this.getHeaders()
+      );
+      var list = eps.statusCode === 200 ? (JSON.parse(eps.body).Items || []) : [];
+      for (var i = 0; i < list.length; i++) {
+        var e = list[i];
+        chapters.push({
+          name:
+            (e.ParentIndexNumber != null ? "S" + e.ParentIndexNumber : "") +
+            (e.IndexNumber != null ? "E" + e.IndexNumber + " " : " ") + (e.Name || ""),
+          url: e.Id,
+          dateUpload: e.PremiereDate || "",
+        });
+      }
+    } else {
+      // A movie is a single "chapter" — itself.
+      chapters.push({ name: item.Name, url: url, dateUpload: item.PremiereDate || "" });
+    }
+    return {
+      name: item.Name,
+      link: url,
+      imageUrl: this._imageUrl(item),
+      description: item.Overview || "",
+      genre: item.Genres || [],
+      status: 1,
+      chapters: chapters,
+    };
+  }
+
+  // The playable stream for an item id. `api_key` goes in the query so the media
+  // player can fetch it without custom headers.
+  async getVideoList(url) {
+    var stream =
+      this._base() + "/Videos/" + url + "/stream?static=true&api_key=" +
+      encodeURIComponent(this._pref("apiKey"));
+    return [{ url: stream, quality: "Direct", originalUrl: stream }];
+  }
+
+  getFilterList() {
+    return [];
+  }
+
+  getSourcePreferences() {
+    return [
+      {
+        key: "address",
+        editTextPreference: {
+          title: "Server address",
+          summary: "Your Jellyfin server URL, e.g. http://192.168.1.10:8096",
+          value: "",
+          dialogTitle: "Server address",
+          dialogMessage: "http(s)://host:port",
+        },
+      },
+      {
+        key: "apiKey",
+        editTextPreference: {
+          title: "API key",
+          summary: "Dashboard → API Keys. Sent as the X-Emby-Token header.",
+          value: "",
+          dialogTitle: "API key",
+          dialogMessage: "Paste your Jellyfin API key",
+        },
+      },
+    ];
+  }
+}

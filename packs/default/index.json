@@ -131,6 +131,19 @@
         }
       ],
       "codeUrl": "https://raw.githubusercontent.com/CaptainDario/da-lang-plugins/main/packs/default/plugins/general/script.dap"
+    },
+    {
+      "id": "da.default.anilist",
+      "name": "AniList",
+      "version": "0.1.0",
+      "runtime": "quickjs",
+      "family": "fetchPlugin",
+      "kind": "tracker",
+      "needs": { "auth": 1, "secrets": 1 },
+      "description": "Track reading / watching on AniList (https://anilist.co) — log in once, link a series, and sync progress. OAuth via the app's browser sheet; the token is stored securely. Written from the public GraphQL API; not yet verified against a live account, and needs DaKanji's registered AniList app id.",
+      "author": "DaLang",
+      "settings": [],
+      "codeUrl": "https://raw.githubusercontent.com/CaptainDario/da-lang-plugins/main/packs/default/plugins/anilist/script.dap"
     }
   ]
 }
