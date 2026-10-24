@@ -1,0 +1,14 @@
+{
+  "id": "da.examples.jellyfin",
+  "name": "Jellyfin",
+  "version": "0.1.0",
+  "runtime": "quickjs",
+  "family": "mediaPlugin",
+  "itemType": "video",
+  "baseUrl": "",
+  "lang": "",
+  "needs": {},
+  "description": "Reference media source — a self-hosted Jellyfin server. The end-to-end example for the MProvider media contract (browse -> detail -> stream). Declares its server address + API key via getSourcePreferences; configure them once the media settings surface lands.",
+  "author": "DaLang",
+  "settings": []
+}
