@@ -57,6 +57,8 @@ the calls below.
 
 ### tts — `needs: { "tts": 1 }`
 
+`language` is a locale tag the engine understands (`ja-JP`), not an ISO code.
+
 | call | returns |
 | --- | --- |
 | `da.host.tts(text, { language?, voice?, engine? })` | `bool` — whether speech started |
@@ -91,6 +93,7 @@ chosen by the app's language.
 
 | call | returns |
 | --- | --- |
+| `da.host.language.code()` | `{ iso639_1, iso639_2b, iso639_2t, iso639_3 }` — the app's study language in each ISO form |
 | `da.host.language.parse(text)` | `[{ surface, base, reading, pos }]`, one per word; `pos` is a list of tags |
 | `da.host.language.getTermReadingPairs(pairs, { script? })` | for each `{ term, reading }`, a list of `{ term, ruby }` segments (`ruby` empty for a kana run); `script` is `"hiragana"` (default) or `"katakana"` |
 | `da.host.language.findSentences(text)` | `[{ text, start, end }]` |
@@ -105,6 +108,13 @@ chosen by the app's language.
 
 Camera and microphone aren't here: a plugin uses the normal web `getUserMedia`,
 and the in-app browser shows the OS permission dialog. Nothing to declare.
+
+## Language codes
+
+When a plugin tells the app a language — a subtitle track's or cue's `language`,
+a text selection's `language`, OCR `languages` — any ISO 639 code (`ja`, `jpn`)
+or language tag (`ja-JP`) works; the app reads it as ISO 639-3. Prefer ISO 639-3.
+TTS is the exception: its `language` goes to the engine as is.
 
 ## Errors & the plugin console
 
